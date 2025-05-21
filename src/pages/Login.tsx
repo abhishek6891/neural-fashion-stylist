@@ -5,7 +5,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -19,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -31,7 +31,11 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const supabase = useSupabaseClient();
+
+  // Check if Supabase credentials are available
+  const hasSupabaseCredentials = 
+    import.meta.env.VITE_SUPABASE_URL && 
+    import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -42,9 +46,21 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (!hasSupabaseCredentials) {
+      toast.error("Authentication is not available");
+      return;
+    }
+    
     setIsLoading(true);
-
+    
     try {
+      // We'll use dynamic import to prevent the error when Supabase isn't available
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+      
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -76,6 +92,15 @@ const Login = () => {
           <p className="text-muted-foreground mb-8">
             Log in to your Neural Threads account
           </p>
+
+          {!hasSupabaseCredentials && (
+            <Alert className="mb-8 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
+              <AlertDescription>
+                Authentication is not available because Supabase is not connected.
+                Please connect your project to Supabase to enable authentication features.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -122,7 +147,7 @@ const Login = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !hasSupabaseCredentials}>
                 {isLoading ? "Logging in..." : "Log in"}
               </Button>
             </form>
