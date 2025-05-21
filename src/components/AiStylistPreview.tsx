@@ -134,6 +134,14 @@ const AiStylistPreview = () => {
                   <div key={item} className="aspect-square bg-muted rounded-md animate-pulse"></div>
                 ))}
               </div>
+
+              <div className="mt-4 text-center">
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/ai-stylist">
+                    Get full recommendation
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
