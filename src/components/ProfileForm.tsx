@@ -24,7 +24,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Height, Weight, Calendar, Ruler, Body } from "lucide-react";
+import { Ruler, Scale, CalendarDays, User } from "lucide-react";
 
 const profileSchema = z.object({
   height: z.string().min(1, { message: "Height is required" }),
@@ -124,7 +124,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Height className="h-4 w-4" /> Height
+                      <Ruler className="h-4 w-4" /> Height
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 170 cm" {...field} />
@@ -140,7 +140,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Weight className="h-4 w-4" /> Weight
+                      <Scale className="h-4 w-4" /> Weight
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 65 kg" {...field} />
@@ -156,7 +156,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" /> Age
+                      <CalendarDays className="h-4 w-4" /> Age
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 28" {...field} />
@@ -172,7 +172,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Body className="h-4 w-4" /> Chest
+                      <User className="h-4 w-4" /> Chest
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 90 cm" {...field} />
@@ -188,7 +188,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Body className="h-4 w-4" /> Waist
+                      <User className="h-4 w-4" /> Waist
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 75 cm" {...field} />
@@ -204,7 +204,7 @@ const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1">
-                      <Body className="h-4 w-4" /> Hip
+                      <User className="h-4 w-4" /> Hip
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., 95 cm" {...field} />
