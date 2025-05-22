@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProfileForm from "@/components/ProfileForm";
 import {
   Form,
   FormControl,
@@ -30,6 +31,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Check if Supabase credentials are available
@@ -61,7 +64,7 @@ const Login = () => {
         import.meta.env.VITE_SUPABASE_ANON_KEY
       );
       
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
@@ -72,7 +75,30 @@ const Login = () => {
       }
 
       toast.success("Logged in successfully!");
-      navigate("/");
+
+      // Check if user has profile measurements
+      if (authData?.user?.id) {
+        setUserId(authData.user.id);
+        
+        const { data: profileData, error: profileError } = await supabase
+          .from('profile_measurements')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+        
+        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+          console.error("Error checking profile:", profileError);
+        }
+        
+        // If no profile data found, show the profile form
+        if (!profileData) {
+          setShowProfileForm(true);
+        } else {
+          navigate("/");
+        }
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       toast.error("An unexpected error occurred");
       console.error(error);
@@ -163,6 +189,16 @@ const Login = () => {
           </div>
         </div>
       </main>
+      
+      {/* Profile Measurements Form */}
+      {userId && (
+        <ProfileForm 
+          isOpen={showProfileForm}
+          onOpenChange={setShowProfileForm} 
+          userId={userId} 
+        />
+      )}
+      
       <Footer />
     </div>
   );

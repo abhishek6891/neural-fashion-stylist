@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProfileForm from "@/components/ProfileForm";
 import {
   Form,
   FormControl,
@@ -33,6 +34,8 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
 
@@ -64,11 +67,19 @@ const Signup = () => {
         return;
       }
 
-      // Check if email confirmation is required
+      // If email confirmation is required, show message and don't proceed further
       if (authData?.user?.identities?.length === 0) {
         toast.success("Please check your email for verification link");
+        return;
+      }
+
+      toast.success("Account created successfully!");
+      
+      // Store user ID and show profile form
+      if (authData?.user?.id) {
+        setUserId(authData.user.id);
+        setShowProfileForm(true);
       } else {
-        toast.success("Account created successfully!");
         navigate("/");
       }
     } catch (error) {
@@ -166,6 +177,19 @@ const Signup = () => {
           </div>
         </div>
       </main>
+      
+      {/* Profile Measurements Form */}
+      {userId && (
+        <ProfileForm 
+          isOpen={showProfileForm}
+          onOpenChange={(open) => {
+            setShowProfileForm(open);
+            if (!open) navigate("/");
+          }}
+          userId={userId} 
+        />
+      )}
+      
       <Footer />
     </div>
   );
