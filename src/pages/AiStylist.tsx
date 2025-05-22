@@ -44,7 +44,7 @@ const formSchema = z.object({
 interface OutfitSuggestion {
   title: string;
   description: string;
-  imageUrl?: string;
+  imageUrl: string;
   items: {
     name: string;
     type: string;
@@ -83,6 +83,55 @@ const stylePreferences = [
   "Trendy",
 ];
 
+// Fashion image mapping by style and occasion
+const fashionImages = {
+  Minimal: {
+    "Casual Everyday": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=60",
+    "Office Work": "https://images.unsplash.com/photo-1617137968427-85924c800a22?w=800&auto=format&fit=crop&q=60",
+    "Formal Event": "https://images.unsplash.com/photo-1589451359791-f9c33af6762f?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1485218126466-34e6392ec754?w=800&auto=format&fit=crop&q=60"
+  },
+  Classic: {
+    "Office Work": "https://images.unsplash.com/photo-1580207646504-f2f11138a25b?w=800&auto=format&fit=crop&q=60",
+    "Wedding Guest": "https://images.unsplash.com/photo-1597983073493-088dcad8e8ba?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1603189343302-e603f7add05a?w=800&auto=format&fit=crop&q=60"
+  },
+  Bohemian: {
+    "Casual Everyday": "https://images.unsplash.com/photo-1614093302611-8efc4de12547?w=800&auto=format&fit=crop&q=60",
+    "Vacation": "https://images.unsplash.com/photo-1541101767792-f9b2b1c4f127?w=800&auto=format&fit=crop&q=60",
+    "Festive Celebration": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1589476993333-f55b84301219?w=800&auto=format&fit=crop&q=60"
+  },
+  "Street Style": {
+    "Casual Everyday": "https://images.unsplash.com/photo-1523194258983-4ef0ff9e8b7d?w=800&auto=format&fit=crop&q=60",
+    "First Date": "https://images.unsplash.com/photo-1475180098004-ca77a66827be?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800&auto=format&fit=crop&q=60"
+  },
+  Preppy: {
+    "Office Work": "https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?w=800&auto=format&fit=crop&q=60",
+    "Business Meeting": "https://images.unsplash.com/photo-1596609548086-85bbf8ddb6b9?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1565537222174-2a43ca1c3462?w=800&auto=format&fit=crop&q=60"
+  },
+  Vintage: {
+    "Casual Everyday": "https://images.unsplash.com/photo-1612722432474-b971cdcea546?w=800&auto=format&fit=crop&q=60",
+    "Festive Celebration": "https://images.unsplash.com/photo-1602810316693-3667c854239a?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&auto=format&fit=crop&q=60"
+  },
+  Elegant: {
+    "Wedding Guest": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&auto=format&fit=crop&q=60",
+    "Formal Event": "https://images.unsplash.com/photo-1549062573-edc78a53ffa6?w=800&auto=format&fit=crop&q=60",
+    "Business Meeting": "https://images.unsplash.com/photo-1601046668428-94ea13437736?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?w=800&auto=format&fit=crop&q=60"
+  },
+  Trendy: {
+    "Casual Everyday": "https://images.unsplash.com/photo-1589465885857-44edb59bbff2?w=800&auto=format&fit=crop&q=60",
+    "First Date": "https://images.unsplash.com/photo-1513094735237-8f2714d57c13?w=800&auto=format&fit=crop&q=60",
+    "Vacation": "https://images.unsplash.com/photo-1600950207944-0d63e8edbc3f?w=800&auto=format&fit=crop&q=60",
+    default: "https://images.unsplash.com/photo-1619440810076-80a17393e42f?w=800&auto=format&fit=crop&q=60"
+  },
+  default: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&q=60"
+};
+
 const AiStylist = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<OutfitSuggestion[]>([]);
@@ -119,6 +168,17 @@ const AiStylist = () => {
     }
   };
 
+  // Get appropriate image based on style and occasion
+  const getFashionImage = (stylePreference: string, occasion: string): string => {
+    const styleImages = fashionImages[stylePreference as keyof typeof fashionImages] || fashionImages.default;
+    
+    if (typeof styleImages === 'string') {
+      return styleImages;
+    }
+    
+    return styleImages[occasion as keyof typeof styleImages] || styleImages.default;
+  };
+
   // Mock outfit generation function
   const generateMockOutfits = (values: z.infer<typeof formSchema>): OutfitSuggestion[] => {
     const { bodyType, occasion, stylePreference, budget } = values;
@@ -128,6 +188,7 @@ const AiStylist = () => {
       {
         title: `${stylePreference} Look for ${occasion}`,
         description: `A perfectly tailored ${stylePreference.toLowerCase()} outfit for your ${bodyType.toLowerCase()} body type. This ensemble works beautifully for a ${occasion.toLowerCase()} setting while staying within your budget of $${budget}.`,
+        imageUrl: getFashionImage(stylePreference, occasion),
         items: [
           { name: `${stylePreference} Top`, type: "Top" },
           { name: `Fitted ${bodyType}-flattering Bottoms`, type: "Bottom" },
@@ -138,6 +199,7 @@ const AiStylist = () => {
       {
         title: `Alternative ${stylePreference} Ensemble`,
         description: `Another option that emphasizes your ${bodyType.toLowerCase()} frame's best features while maintaining a ${stylePreference.toLowerCase()} aesthetic. Perfect for ${occasion.toLowerCase()} events.`,
+        imageUrl: getFashionImage(stylePreference, occasion === "Formal Event" ? "Wedding Guest" : "Casual Everyday"),
         items: [
           { name: `Statement ${stylePreference} Piece`, type: "Outerwear" },
           { name: `${bodyType}-enhancing Base Layer`, type: "Top" },
@@ -148,6 +210,7 @@ const AiStylist = () => {
       {
         title: `Budget-Friendly ${occasion} Look`,
         description: `An affordable yet stylish outfit for your ${bodyType.toLowerCase()} shape that works well for ${occasion.toLowerCase()} settings. Complete with mix-and-match pieces that stay under your $${budget} budget.`,
+        imageUrl: getFashionImage(stylePreference === "Elegant" ? "Classic" : stylePreference, occasion),
         items: [
           { name: "Versatile Top", type: "Top" },
           { name: "Signature Bottom", type: "Bottom" },
@@ -353,10 +416,12 @@ const AiStylist = () => {
 
                     {suggestions.map((suggestion, index) => (
                       <TabsContent key={index} value={`outfit${index + 1}`} className="space-y-4">
-                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                          <p className="text-muted-foreground">
-                            [Outfit visualization would appear here]
-                          </p>
+                        <div className="aspect-square rounded-lg overflow-hidden">
+                          <img 
+                            src={suggestion.imageUrl}
+                            alt={suggestion.title}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         
                         <div>

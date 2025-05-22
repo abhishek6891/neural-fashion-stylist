@@ -26,9 +26,43 @@ const occasions = [
   "Festival Celebration"
 ];
 
+// Fashion image mapping simplified version
+const previewImages = {
+  Casual: {
+    "Office Meeting": "https://images.unsplash.com/photo-1485218126466-34e6392ec754?w=800&auto=format&fit=crop&q=60",
+    "Beach Vacation": "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800&auto=format&fit=crop&q=60",
+    "Festival Celebration": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=60",
+    "Wedding Reception": "https://images.unsplash.com/photo-1589465885857-44edb59bbff2?w=800&auto=format&fit=crop&q=60"
+  },
+  Formal: {
+    "Office Meeting": "https://images.unsplash.com/photo-1580207646504-f2f11138a25b?w=800&auto=format&fit=crop&q=60",
+    "Wedding Reception": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&auto=format&fit=crop&q=60",
+    "Beach Vacation": "https://images.unsplash.com/photo-1601046668428-94ea13437736?w=800&auto=format&fit=crop&q=60",
+    "Festival Celebration": "https://images.unsplash.com/photo-1596609548086-85bbf8ddb6b9?w=800&auto=format&fit=crop&q=60"
+  },
+  Festive: {
+    "Office Meeting": "https://images.unsplash.com/photo-1602810316693-3667c854239a?w=800&auto=format&fit=crop&q=60",
+    "Wedding Reception": "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&auto=format&fit=crop&q=60",
+    "Beach Vacation": "https://images.unsplash.com/photo-1541101767792-f9b2b1c4f127?w=800&auto=format&fit=crop&q=60",
+    "Festival Celebration": "https://images.unsplash.com/photo-1614093302611-8efc4de12547?w=800&auto=format&fit=crop&q=60"
+  },
+  Wedding: {
+    "Office Meeting": "https://images.unsplash.com/photo-1597983073493-088dcad8e8ba?w=800&auto=format&fit=crop&q=60",
+    "Wedding Reception": "https://images.unsplash.com/photo-1549062573-edc78a53ffa6?w=800&auto=format&fit=crop&q=60",
+    "Beach Vacation": "https://images.unsplash.com/photo-1571513722275-4b41940f54b8?w=800&auto=format&fit=crop&q=60",
+    "Festival Celebration": "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&auto=format&fit=crop&q=60"
+  }
+};
+
 const AiStylistPreview = () => {
   const [selectedStyle, setSelectedStyle] = useState("Casual");
   const [selectedOccasion, setSelectedOccasion] = useState("Office Meeting");
+
+  // Get appropriate image based on style and occasion
+  const getPreviewImage = (style: string, occasion: string): string => {
+    return previewImages[style as keyof typeof previewImages]?.[occasion as keyof typeof previewImages[keyof typeof previewImages]] || 
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&q=60";
+  };
 
   return (
     <section className="py-24 bg-gradient-to-br from-fashion-purple/5 to-fashion-pink/5">
@@ -130,9 +164,33 @@ const AiStylistPreview = () => {
               </div>
               
               <div className="grid grid-cols-3 gap-3">
-                {[1, 2, 3].map((item) => (
-                  <div key={item} className="aspect-square bg-muted rounded-md animate-pulse"></div>
-                ))}
+                <div className="aspect-square rounded-md overflow-hidden">
+                  <img 
+                    src={getPreviewImage(selectedStyle, selectedOccasion)} 
+                    alt={`${selectedStyle} outfit for ${selectedOccasion}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-md overflow-hidden">
+                  <img 
+                    src={getPreviewImage(
+                      selectedStyle === "Wedding" ? "Formal" : selectedStyle === "Formal" ? "Wedding" : "Festive", 
+                      selectedOccasion
+                    )} 
+                    alt="Style suggestion"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-md overflow-hidden">
+                  <img 
+                    src={getPreviewImage(
+                      selectedStyle, 
+                      selectedOccasion === "Office Meeting" ? "Wedding Reception" : "Office Meeting"
+                    )} 
+                    alt="Style suggestion"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
 
               <div className="mt-4 text-center">
