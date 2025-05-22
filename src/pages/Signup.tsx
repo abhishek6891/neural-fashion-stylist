@@ -36,6 +36,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userType, setUserType] = useState<"customer" | "designer" | null>("customer"); // Default to customer
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
 
@@ -186,7 +187,8 @@ const Signup = () => {
             setShowProfileForm(open);
             if (!open) navigate("/");
           }}
-          userId={userId} 
+          userId={userId}
+          userType={userType}
         />
       )}
       

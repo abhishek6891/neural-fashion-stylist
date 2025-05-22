@@ -33,6 +33,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userType, setUserType] = useState<"customer" | "designer" | null>(null);
   const navigate = useNavigate();
 
   // Check if Supabase credentials are available
@@ -80,14 +81,23 @@ const Login = () => {
       if (authData?.user?.id) {
         setUserId(authData.user.id);
         
+        // Get user type from metadata or profile
         const { data: profileData, error: profileError } = await supabase
           .from('profile_measurements')
-          .select('*')
+          .select('user_type')
           .eq('user_id', authData.user.id)
           .single();
         
-        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error("Error checking profile:", profileError);
+        }
+        
+        // Set the user type based on profile data
+        if (profileData?.user_type) {
+          setUserType(profileData.user_type as "customer" | "designer");
+        } else {
+          // Default to customer if not specified
+          setUserType("customer");
         }
         
         // If no profile data found, show the profile form
@@ -196,6 +206,7 @@ const Login = () => {
           isOpen={showProfileForm}
           onOpenChange={setShowProfileForm} 
           userId={userId} 
+          userType={userType}
         />
       )}
       
