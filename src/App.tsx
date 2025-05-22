@@ -11,8 +11,7 @@ import AiStylist from "./pages/AiStylist";
 import Tailors from "./pages/Tailors";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
-import Signup from "./pages/Signup";
-import Login from "./pages/Login";
+import Welcome from "./pages/Welcome";
 
 // Initialize React Query
 const queryClient = new QueryClient();
@@ -25,12 +24,12 @@ const hasSupabaseCredentials =
 // If credentials are missing, we'll show a message in the console
 if (!hasSupabaseCredentials) {
   console.warn(
-    "Supabase credentials are missing. Authentication features will be limited. " +
+    "Supabase credentials are missing. Some features will be limited. " +
     "Please connect your project to Supabase using the Supabase integration button."
   );
 }
 
-// Main App component without Supabase integration
+// Main App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -43,9 +42,7 @@ const App = () => (
           <Route path="/ai-stylist" element={<AiStylist />} />
           <Route path="/tailors" element={<Tailors />} />
           <Route path="/about" element={<About />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

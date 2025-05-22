@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,52 +10,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Menu, User, LogOut } from "lucide-react";
+import { Menu, User } from "lucide-react";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
-  const supabaseClient = useSupabaseClient();
-  const user = useUser();
-  const [loading, setLoading] = useState(true);
-  const [fullName, setFullName] = useState("");
-
+  const [userType, setUserType] = useState<string | null>(null);
+  
+  // Check localStorage for user type on component mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        const { data, error } = await supabaseClient
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setFullName(data.full_name);
-        } else {
-          // If no profile exists yet, use metadata from auth
-          setFullName(user.user_metadata.full_name || '');
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [user, supabaseClient]);
-
-  const handleSignOut = async () => {
-    try {
-      await supabaseClient.auth.signOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
+    const storedUserType = localStorage.getItem('userType');
+    if (storedUserType) {
+      setUserType(storedUserType);
     }
-  };
+  }, []);
 
   const navItems = [
     { name: "Discover", path: "/discover" },
@@ -95,30 +61,17 @@ const Navbar = () => {
               
               <DropdownMenuSeparator />
               
-              {!user ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link to="/login" className="text-fashion-pink font-medium">
-                      Log In
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/signup" className="text-fashion-purple font-medium">
-                      Sign Up
-                    </Link>
-                  </DropdownMenuItem>
-                </>
+              {!userType ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/welcome" className="text-fashion-purple font-medium">
+                    Join Us
+                  </Link>
+                </DropdownMenuItem>
               ) : (
-                <>
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="truncate">{loading ? '...' : (fullName || user.email)}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span className="truncate">Your Profile</span>
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -134,35 +87,15 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {!user ? (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" asChild>
-                  <Link to="/login">Log In</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/signup">Sign Up</Link>
-                </Button>
-              </div>
+            {!userType ? (
+              <Button asChild>
+                <Link to="/welcome">Join Us</Link>
+              </Button>
             ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative flex gap-2 items-center">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">{loading ? '...' : (fullName || 'Account')}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="truncate">{loading ? '...' : (fullName || user.email)}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button variant="ghost" className="relative flex gap-2 items-center">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">{userType === 'designer' ? 'Designer' : 'Customer'}</span>
+              </Button>
             )}
           </div>
         )}

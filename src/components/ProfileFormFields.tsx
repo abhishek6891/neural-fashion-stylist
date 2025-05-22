@@ -18,9 +18,10 @@ import { profileSchema, ProfileFormValues } from "@/schemas/profileSchema";
 interface ProfileFormFieldsProps {
   onSubmit: (data: ProfileFormValues) => Promise<void>;
   isLoading: boolean;
+  userType: "customer" | "designer" | null;
 }
 
-const ProfileFormFields = ({ onSubmit, isLoading }: ProfileFormFieldsProps) => {
+const ProfileFormFields = ({ onSubmit, isLoading, userType }: ProfileFormFieldsProps) => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -32,6 +33,9 @@ const ProfileFormFields = ({ onSubmit, isLoading }: ProfileFormFieldsProps) => {
       hip: "",
       inseam: "",
       shoeSize: "",
+      specialization: "",
+      experience: "",
+      location: "",
     },
   });
 
@@ -87,86 +91,142 @@ const ProfileFormFields = ({ onSubmit, isLoading }: ProfileFormFieldsProps) => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="chest"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  <User className="h-4 w-4" /> Chest
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 90 cm" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {userType === "designer" ? (
+            <>
+              <FormField
+                control={form.control}
+                name="specialization"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" /> Specialization
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Wedding dresses, Suits" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="waist"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  <User className="h-4 w-4" /> Waist
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 75 cm" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="experience"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <CalendarDays className="h-4 w-4" /> Experience (years)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="hip"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  <User className="h-4 w-4" /> Hip
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 95 cm" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" /> Location
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Mumbai, India" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : null}
 
-          <FormField
-            control={form.control}
-            name="inseam"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  <Ruler className="h-4 w-4" /> Inseam (Optional)
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 80 cm" {...field} />
-                </FormControl>
-                <FormDescription>Inside leg measurement</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {userType === "customer" ? (
+            <>
+              <FormField
+                control={form.control}
+                name="chest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" /> Chest
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 90 cm" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="shoeSize"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  <Ruler className="h-4 w-4" /> Shoe Size (Optional)
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., EU 42 / US 9" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="waist"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" /> Waist
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 75 cm" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="hip"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <User className="h-4 w-4" /> Hip
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 95 cm" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="inseam"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <Ruler className="h-4 w-4" /> Inseam (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., 80 cm" {...field} />
+                    </FormControl>
+                    <FormDescription>Inside leg measurement</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="shoeSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <Ruler className="h-4 w-4" /> Shoe Size (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., EU 42 / US 9" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          ) : null}
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>

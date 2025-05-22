@@ -13,22 +13,32 @@ interface ProfileFormProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
+  userType: "customer" | "designer" | null;
+  onComplete?: () => void;
 }
 
-const ProfileForm = ({ isOpen, onOpenChange, userId }: ProfileFormProps) => {
-  const { onSubmit, isLoading } = useProfileForm(userId, onOpenChange);
+const ProfileForm = ({ isOpen, onOpenChange, userId, userType, onComplete }: ProfileFormProps) => {
+  const { onSubmit, isLoading } = useProfileForm(userId, userType, onOpenChange, onComplete);
+
+  const title = userType === "designer" 
+    ? "Complete Your Designer/Tailor Profile" 
+    : "Complete Your Customer Profile";
+    
+  const description = userType === "designer"
+    ? "Please enter your details to help customers find you and your services."
+    : "Please enter your body measurements to help designers create perfectly fitting clothes for you.";
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle className="text-2xl font-bold">Complete Your Profile</SheetTitle>
+          <SheetTitle className="text-2xl font-bold">{title}</SheetTitle>
           <SheetDescription>
-            Please enter your body measurements to help designers create perfectly fitting clothes for you.
+            {description}
           </SheetDescription>
         </SheetHeader>
         
-        <ProfileFormFields onSubmit={onSubmit} isLoading={isLoading} />
+        <ProfileFormFields onSubmit={onSubmit} isLoading={isLoading} userType={userType} />
       </SheetContent>
     </Sheet>
   );
