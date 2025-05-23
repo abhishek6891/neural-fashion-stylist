@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const signupSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -43,11 +43,6 @@ const Signup = () => {
   const [userType, setUserType] = useState<"customer" | "designer">("customer");
   const navigate = useNavigate();
 
-  // Check if Supabase credentials are available
-  const hasSupabaseCredentials = 
-    import.meta.env.VITE_SUPABASE_URL && 
-    import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -58,21 +53,9 @@ const Signup = () => {
   });
 
   const onSubmit = async (data: SignupFormValues) => {
-    if (!hasSupabaseCredentials) {
-      toast.error("Authentication is not available");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // We'll use dynamic import to prevent the error when Supabase isn't available
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
-      
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -121,15 +104,6 @@ const Signup = () => {
           <p className="text-muted-foreground mb-8">
             Sign up for your Neural Threads account
           </p>
-
-          {!hasSupabaseCredentials && (
-            <Alert className="mb-8 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
-              <AlertDescription>
-                Authentication is not available because Supabase is not connected.
-                Please connect your project to Supabase to enable authentication features.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -227,7 +201,7 @@ const Signup = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading || !hasSupabaseCredentials}>
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
             </form>

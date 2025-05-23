@@ -1,9 +1,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
 import { ProfileFormValues } from "@/schemas/profileSchema";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useProfileForm = (
   userId: string, 
@@ -13,10 +13,9 @@ export const useProfileForm = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const supabase = useSupabaseClient();
 
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!userId) {
+    if (!userId || !userType) {
       toast.error("User type not selected");
       return;
     }
@@ -24,7 +23,7 @@ export const useProfileForm = (
     setIsLoading(true);
 
     try {
-      // Store the profile table with the appropriate user type
+      // Store the profile in the appropriate table
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
       const profileData = {

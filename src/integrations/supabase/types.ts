@@ -9,7 +9,230 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      design_projects: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          designer_id: string
+          id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          designer_id: string
+          id?: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          designer_id?: string
+          id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      designer_profiles: {
+        Row: {
+          age: string | null
+          bio: string | null
+          created_at: string | null
+          experience: string | null
+          height: string | null
+          id: string
+          location: string | null
+          portfolio_url: string | null
+          specialization: string | null
+          updated_at: string | null
+          user_id: string
+          user_type: string
+          weight: string | null
+        }
+        Insert: {
+          age?: string | null
+          bio?: string | null
+          created_at?: string | null
+          experience?: string | null
+          height?: string | null
+          id?: string
+          location?: string | null
+          portfolio_url?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_type?: string
+          weight?: string | null
+        }
+        Update: {
+          age?: string | null
+          bio?: string | null
+          created_at?: string | null
+          experience?: string | null
+          height?: string | null
+          id?: string
+          location?: string | null
+          portfolio_url?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_type?: string
+          weight?: string | null
+        }
+        Relationships: []
+      }
+      fashion_items: {
+        Row: {
+          brand: string | null
+          category: string
+          color: string | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          name: string
+          outfit_id: string | null
+          size: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          category: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          outfit_id?: string | null
+          size?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          category?: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          outfit_id?: string | null
+          size?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fashion_items_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outfits: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_favorite: boolean | null
+          occasion: string | null
+          season: string | null
+          style: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean | null
+          occasion?: string | null
+          season?: string | null
+          style?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_favorite?: boolean | null
+          occasion?: string | null
+          season?: string | null
+          style?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_measurements: {
+        Row: {
+          age: string | null
+          chest: string | null
+          created_at: string | null
+          height: string | null
+          hip: string | null
+          id: string
+          inseam: string | null
+          shoe_size: string | null
+          updated_at: string | null
+          user_id: string
+          user_type: string
+          waist: string | null
+          weight: string | null
+        }
+        Insert: {
+          age?: string | null
+          chest?: string | null
+          created_at?: string | null
+          height?: string | null
+          hip?: string | null
+          id?: string
+          inseam?: string | null
+          shoe_size?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_type?: string
+          waist?: string | null
+          weight?: string | null
+        }
+        Update: {
+          age?: string | null
+          chest?: string | null
+          created_at?: string | null
+          height?: string | null
+          hip?: string | null
+          id?: string
+          inseam?: string | null
+          shoe_size?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_type?: string
+          waist?: string | null
+          weight?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

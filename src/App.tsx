@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { createClient } from '@supabase/supabase-js';
 
 import Index from "./pages/Index";
 import Discover from "./pages/Discover";
@@ -32,26 +34,44 @@ if (!hasSupabaseCredentials) {
 }
 
 // Main App component
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/discover" element={<Discover />} />
-          <Route path="/ai-stylist" element={<AiStylist />} />
-          <Route path="/tailors" element={<Tailors />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Check for initialization of Supabase
+  useEffect(() => {
+    const initializeApp = async () => {
+      // We're already connected through the integration
+      setIsInitialized(true);
+    };
+
+    initializeApp();
+  }, []);
+
+  if (!isInitialized) {
+    return <div>Loading application...</div>;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/discover" element={<Discover />} />
+            <Route path="/ai-stylist" element={<AiStylist />} />
+            <Route path="/tailors" element={<Tailors />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -36,11 +37,6 @@ const Login = () => {
   const [userType, setUserType] = useState<"customer" | "designer" | null>(null);
   const navigate = useNavigate();
 
-  // Check if Supabase credentials are available
-  const hasSupabaseCredentials = 
-    import.meta.env.VITE_SUPABASE_URL && 
-    import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -50,21 +46,9 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    if (!hasSupabaseCredentials) {
-      toast.error("Authentication is not available");
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      // We'll use dynamic import to prevent the error when Supabase isn't available
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
-      
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -81,32 +65,37 @@ const Login = () => {
       if (authData?.user?.id) {
         setUserId(authData.user.id);
         
-        // Get user type from metadata or profile
-        const { data: profileData, error: profileError } = await supabase
+        // Check for customer profile first
+        const { data: customerProfile, error: customerError } = await supabase
           .from('profile_measurements')
           .select('user_type')
           .eq('user_id', authData.user.id)
           .single();
         
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error("Error checking profile:", profileError);
-        }
-        
-        // Set the user type based on profile data
-        if (profileData?.user_type) {
-          setUserType(profileData.user_type as "customer" | "designer");
-          localStorage.setItem('userType', profileData.user_type);
-        } else {
-          // Default to customer if not specified
-          setUserType("customer");
-        }
-        
-        // If no profile data found, show the profile form
-        if (!profileData) {
-          setShowProfileForm(true);
-        } else {
+        if (!customerError && customerProfile) {
+          setUserType(customerProfile.user_type as "customer" | "designer");
+          localStorage.setItem('userType', customerProfile.user_type);
           navigate("/");
+          return;
         }
+        
+        // If no customer profile, check for designer profile
+        const { data: designerProfile, error: designerError } = await supabase
+          .from('designer_profiles')
+          .select('user_type')
+          .eq('user_id', authData.user.id)
+          .single();
+          
+        if (!designerError && designerProfile) {
+          setUserType(designerProfile.user_type as "customer" | "designer");
+          localStorage.setItem('userType', designerProfile.user_type);
+          navigate("/");
+          return;
+        }
+        
+        // If no profile found, show the profile form with default type
+        setUserType("customer");
+        setShowProfileForm(true);
       } else {
         navigate("/");
       }
@@ -139,15 +128,6 @@ const Login = () => {
           <p className="text-muted-foreground mb-8">
             Log in to your Neural Threads account
           </p>
-
-          {!hasSupabaseCredentials && (
-            <Alert className="mb-8 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
-              <AlertDescription>
-                Authentication is not available because Supabase is not connected.
-                Please connect your project to Supabase to enable authentication features.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -194,7 +174,7 @@ const Login = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading || !hasSupabaseCredentials}>
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Log in"}
               </Button>
             </form>
