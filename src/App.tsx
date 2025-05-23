@@ -12,6 +12,8 @@ import Tailors from "./pages/Tailors";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 // Initialize React Query
 const queryClient = new QueryClient();
@@ -43,6 +45,8 @@ const App = () => (
           <Route path="/tailors" element={<Tailors />} />
           <Route path="/about" element={<About />} />
           <Route path="/welcome" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

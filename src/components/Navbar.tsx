@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Menu, User } from "lucide-react";
+import { Menu, User, LogIn } from "lucide-react";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -62,11 +62,19 @@ const Navbar = () => {
               <DropdownMenuSeparator />
               
               {!userType ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/welcome" className="text-fashion-purple font-medium">
-                    Join Us
-                  </Link>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to="/login" className="text-fashion-purple font-medium">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      <span>Log in</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/signup" className="text-fashion-purple font-medium">
+                      <span>Sign up</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               ) : (
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
@@ -88,9 +96,17 @@ const Navbar = () => {
             ))}
             
             {!userType ? (
-              <Button asChild>
-                <Link to="/welcome">Join Us</Link>
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" asChild>
+                  <Link to="/login" className="flex gap-2 items-center">
+                    <LogIn className="h-4 w-4" />
+                    <span>Log in</span>
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/signup">Sign up</Link>
+                </Button>
+              </div>
             ) : (
               <Button variant="ghost" className="relative flex gap-2 items-center">
                 <User className="h-4 w-4" />

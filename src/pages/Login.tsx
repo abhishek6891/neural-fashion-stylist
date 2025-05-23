@@ -95,6 +95,7 @@ const Login = () => {
         // Set the user type based on profile data
         if (profileData?.user_type) {
           setUserType(profileData.user_type as "customer" | "designer");
+          localStorage.setItem('userType', profileData.user_type);
         } else {
           // Default to customer if not specified
           setUserType("customer");
@@ -115,6 +116,16 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleProfileComplete = () => {
+    navigate("/");
+    // Store user type in localStorage
+    if (userType) {
+      localStorage.setItem('userType', userType);
+    }
+    // Refresh the page to reflect changes
+    window.location.reload();
   };
 
   return (
@@ -201,12 +212,13 @@ const Login = () => {
       </main>
       
       {/* Profile Measurements Form */}
-      {userId && (
+      {userId && userType && (
         <ProfileForm 
           isOpen={showProfileForm}
           onOpenChange={setShowProfileForm} 
           userId={userId} 
           userType={userType}
+          onComplete={handleProfileComplete}
         />
       )}
       

@@ -5,7 +5,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProfileForm from "@/components/ProfileForm";
@@ -20,13 +19,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const signupSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z
     .string()
     .min(8, { message: "Password must be at least 8 characters" }),
-  fullName: z.string().min(2, { message: "Please enter your full name" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -34,33 +37,45 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userType, setUserType] = useState<"customer" | "designer" | null>("customer"); // Default to customer
+  const [userType, setUserType] = useState<"customer" | "designer">("customer");
   const navigate = useNavigate();
-  const supabase = useSupabaseClient();
+
+  // Check if Supabase credentials are available
+  const hasSupabaseCredentials = 
+    import.meta.env.VITE_SUPABASE_URL && 
+    import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: "",
       password: "",
-      fullName: "",
+      confirmPassword: "",
     },
   });
 
   const onSubmit = async (data: SignupFormValues) => {
+    if (!hasSupabaseCredentials) {
+      toast.error("Authentication is not available");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // We'll use dynamic import to prevent the error when Supabase isn't available
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+      
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-          },
-        },
       });
 
       if (error) {
@@ -68,20 +83,12 @@ const Signup = () => {
         return;
       }
 
-      // If email confirmation is required, show message and don't proceed further
-      if (authData?.user?.identities?.length === 0) {
-        toast.success("Please check your email for verification link");
-        return;
-      }
-
       toast.success("Account created successfully!");
-      
-      // Store user ID and show profile form
+
+      // Check if user has profile measurements
       if (authData?.user?.id) {
         setUserId(authData.user.id);
         setShowProfileForm(true);
-      } else {
-        navigate("/");
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -91,34 +98,41 @@ const Signup = () => {
     }
   };
 
+  const handleUserTypeChange = (type: "customer" | "designer") => {
+    setUserType(type);
+  };
+
+  const handleProfileComplete = () => {
+    navigate("/");
+    // Store user type in localStorage
+    localStorage.setItem('userType', userType);
+    // Refresh the page to reflect changes
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="pt-32 pb-24 container">
         <div className="max-w-md mx-auto">
           <h1 className="text-4xl font-bold mb-4">
-            Join <span className="gradient-text">Neural Threads</span>
+            Create <span className="gradient-text">Account</span>
           </h1>
           <p className="text-muted-foreground mb-8">
-            Create an account to discover designers, connect with tailors, and access our AI stylist
+            Sign up for your Neural Threads account
           </p>
+
+          {!hasSupabaseCredentials && (
+            <Alert className="mb-8 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
+              <AlertDescription>
+                Authentication is not available because Supabase is not connected.
+                Please connect your project to Supabase to enable authentication features.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="email"
@@ -141,10 +155,10 @@ const Signup = () => {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input 
-                          type={showPassword ? "text" : "password"} 
-                          placeholder="Create a password" 
-                          {...field} 
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Create a password"
+                          {...field}
                         />
                         <Button
                           type="button"
@@ -162,7 +176,58 @@ const Signup = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirm your password"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-4">
+                <p className="text-sm font-medium">I am a:</p>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant={userType === "customer" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => handleUserTypeChange("customer")}
+                  >
+                    Customer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={userType === "designer" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => handleUserTypeChange("designer")}
+                  >
+                    Designer/Tailor
+                  </Button>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading || !hasSupabaseCredentials}>
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
             </form>
@@ -178,20 +243,18 @@ const Signup = () => {
           </div>
         </div>
       </main>
-      
+
       {/* Profile Measurements Form */}
       {userId && (
-        <ProfileForm 
+        <ProfileForm
           isOpen={showProfileForm}
-          onOpenChange={(open) => {
-            setShowProfileForm(open);
-            if (!open) navigate("/");
-          }}
+          onOpenChange={setShowProfileForm}
           userId={userId}
           userType={userType}
+          onComplete={handleProfileComplete}
         />
       )}
-      
+
       <Footer />
     </div>
   );
