@@ -55,7 +55,8 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
   const onSubmit = async (data: BookingFormValues) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Use type assertion to work around missing types
+      const { error } = await (supabase as any)
         .from('bookings')
         .insert({
           customer_id: customerId,
