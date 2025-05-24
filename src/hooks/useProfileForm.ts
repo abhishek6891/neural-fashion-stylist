@@ -23,11 +23,19 @@ export const useProfileForm = (
     setIsLoading(true);
 
     try {
+      // Get the current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast.error("Please log in to save your profile");
+        return;
+      }
+
       // Store the profile in the appropriate table
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
       const profileData = {
-        user_id: userId,
+        user_id: user.id, // Use the authenticated user's ID
         user_type: userType,
         height: data.height,
         weight: data.weight,
@@ -60,7 +68,8 @@ export const useProfileForm = (
         .upsert(profileData);
 
       if (error) {
-        toast.error(error.message);
+        console.error('Database error:', error);
+        toast.error(`Failed to save profile: ${error.message}`);
         return;
       }
 
@@ -75,8 +84,8 @@ export const useProfileForm = (
         navigate(0);
       }
     } catch (error) {
-      toast.error("An unexpected error occurred");
-      console.error(error);
+      console.error('Profile save error:', error);
+      toast.error("An unexpected error occurred while saving your profile");
     } finally {
       setIsLoading(false);
     }

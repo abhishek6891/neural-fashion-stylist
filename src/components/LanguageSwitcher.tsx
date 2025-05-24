@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const languages = [
   { code: "en", name: "English" },
@@ -18,14 +18,14 @@ const languages = [
 ];
 
 const LanguageSwitcher = () => {
-  const [currentLang, setCurrentLang] = useState("en");
+  const { currentLanguage, setLanguage } = useLanguage();
   
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1">
           <span className="text-sm">
-            {languages.find((lang) => lang.code === currentLang)?.name}
+            {languages.find((lang) => lang.code === currentLanguage)?.name}
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -33,8 +33,8 @@ const LanguageSwitcher = () => {
         {languages.map((language) => (
           <DropdownMenuItem
             key={language.code}
-            className={currentLang === language.code ? "bg-muted" : ""}
-            onClick={() => setCurrentLang(language.code)}
+            className={currentLanguage === language.code ? "bg-muted" : ""}
+            onClick={() => setLanguage(language.code)}
           >
             {language.name}
           </DropdownMenuItem>
