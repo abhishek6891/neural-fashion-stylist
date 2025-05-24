@@ -15,19 +15,22 @@ const Login = () => {
     userId: string, 
     userType: "customer" | "designer" | null
   ) => {
+    console.log("Login success:", { userId, userType });
+    
     if (userType) {
-      setUserId(userId);
-      setUserType(userType);
+      // User has a profile, redirect to home
+      localStorage.setItem('userType', userType);
       navigate("/");
     } else {
       // If no profile found, show the profile form
       setUserId(userId);
-      setUserType("customer");
+      setUserType("customer"); // Default to customer
       setShowProfileForm(true);
     }
   };
 
   const handleProfileComplete = () => {
+    console.log("Profile completed for user type:", userType);
     navigate("/");
     // Store user type in localStorage
     if (userType) {

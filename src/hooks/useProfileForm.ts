@@ -12,7 +12,6 @@ export const useProfileForm = (
   onComplete?: () => void
 ) => {
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!userId || !userType) {
@@ -63,7 +62,9 @@ export const useProfileForm = (
         });
       }
 
-      const { error } = await supabase
+      console.log("Saving profile data:", profileData);
+
+      const { error } = await (supabase as any)
         .from(tableName)
         .upsert(profileData);
 
@@ -79,9 +80,6 @@ export const useProfileForm = (
       // Use the onComplete callback if provided
       if (onComplete) {
         onComplete();
-      } else {
-        // Fallback to the old behavior
-        navigate(0);
       }
     } catch (error) {
       console.error('Profile save error:', error);

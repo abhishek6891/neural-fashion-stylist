@@ -1,108 +1,96 @@
 
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search, Filter } from "lucide-react";
+import DesignerCard from "./DesignerCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const TailorNetwork = () => {
-  return (
-    <section className="py-24 bg-muted">
-      <div className="container">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1">
-            <div className="relative">
-              <div className="absolute -z-10 -top-10 -left-10 w-full h-full bg-fashion-gold/10 rounded-xl"></div>
-              
-              <div className="relative rounded-xl overflow-hidden border border-border shadow-lg">
-                <img 
-                  src="https://images.unsplash.com/photo-1590401549336-6ab494104e26?w=800&auto=format&fit=crop&q=60" 
-                  alt="Tailor working" 
-                  className="w-full h-80 object-cover object-center"
-                />
-                
-                <div className="bg-white p-6">
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    {["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad"].map((city) => (
-                      <div key={city} className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {city}
-                      </div>
-                    ))}
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <span className="text-fashion-purple">+120 more cities</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3, 4].map((item) => (
-                        <div 
-                          key={item} 
-                          className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white"
-                        ></div>
-                      ))}
-                      <div className="w-8 h-8 rounded-full bg-fashion-purple/20 border-2 border-white flex items-center justify-center text-xs font-medium">
-                        240+
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Tailors in our growing network</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="order-1 md:order-2">
-            <h2 className="text-3xl font-bold mb-6">
-              Hyperlocal <span className="gradient-text">Tailor Network</span>
+  const [designers, setDesigners] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
+
+  useEffect(() => {
+    fetchDesigners();
+  }, []);
+
+  const fetchDesigners = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('designer_profiles')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching designers:', error);
+      } else {
+        setDesigners(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredDesigners = designers.filter((designer: any) =>
+    designer.specialization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    designer.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('tailors')} Network
             </h2>
-            <p className="text-lg text-muted-foreground mb-6">
-              We connect you with skilled local tailors who can bring your custom designs to life with precision.
-              Our network spans across India, ensuring quality craftsmanship is always within reach.
-            </p>
-            
-            <div className="space-y-6 mb-8">
-              <div className="flex gap-3">
-                <div className="w-12 h-12 rounded-full bg-fashion-purple/10 flex items-center justify-center text-fashion-purple shrink-0">
-                  1
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Design Your Outfit</h3>
-                  <p className="text-muted-foreground">
-                    Work with designers or use our AI tools to create your perfect outfit
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <div className="w-12 h-12 rounded-full bg-fashion-pink/10 flex items-center justify-center text-fashion-pink shrink-0">
-                  2
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Find Local Tailors</h3>
-                  <p className="text-muted-foreground">
-                    Browse our verified network of skilled tailors in your area
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <div className="w-12 h-12 rounded-full bg-fashion-gold/10 flex items-center justify-center text-fashion-gold shrink-0">
-                  3
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Perfect Fit Guarantee</h3>
-                  <p className="text-muted-foreground">
-                    Get measured and enjoy a perfect fit with our satisfaction guarantee
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <Button asChild className="bg-gradient-to-r from-fashion-purple to-fashion-pink hover:opacity-90">
-              <Link to="/tailors">Find Tailors Near You</Link>
-            </Button>
+            <p className="text-muted-foreground">Loading designers...</p>
           </div>
         </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-20 bg-muted/50">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('tailors')} Network
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Connect with skilled designers and tailors in your area. Find the perfect match for your fashion needs.
+          </p>
+        </div>
+
+        <div className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search by specialization or location..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {filteredDesigners.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No designers found. Try adjusting your search.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredDesigners.map((designer: any) => (
+              <DesignerCard key={designer.id} designer={designer} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

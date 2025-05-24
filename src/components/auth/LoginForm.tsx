@@ -35,7 +35,6 @@ interface LoginFormProps {
 const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -59,12 +58,16 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
         return;
       }
 
+      if (!authData?.user?.id) {
+        toast.error("Login failed - no user data received");
+        return;
+      }
+
       toast.success("Logged in successfully!");
 
-      // Check if user has profile measurements
-      if (authData?.user?.id) {
-        // Check for customer profile first
-        const { data: customerProfile, error: customerError } = await supabase
+      // Check for customer profile first
+      try {
+        const { data: customerProfile, error: customerError } = await (supabase as any)
           .from('profile_measurements')
           .select('user_type')
           .eq('user_id', authData.user.id)
@@ -76,9 +79,13 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
           onLoginSuccess(authData.user.id, userType);
           return;
         }
-        
-        // If no customer profile, check for designer profile
-        const { data: designerProfile, error: designerError } = await supabase
+      } catch (err) {
+        console.log("No customer profile found, checking designer profile");
+      }
+      
+      // If no customer profile, check for designer profile
+      try {
+        const { data: designerProfile, error: designerError } = await (supabase as any)
           .from('designer_profiles')
           .select('user_type')
           .eq('user_id', authData.user.id)
@@ -90,12 +97,12 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
           onLoginSuccess(authData.user.id, userType);
           return;
         }
-        
-        // If no profile found, show the profile form with default type
-        onLoginSuccess(authData.user.id, "customer");
-      } else {
-        navigate("/");
+      } catch (err) {
+        console.log("No designer profile found");
       }
+      
+      // If no profile found, show the profile form with default type
+      onLoginSuccess(authData.user.id, null);
     } catch (error) {
       toast.error("An unexpected error occurred");
       console.error(error);
