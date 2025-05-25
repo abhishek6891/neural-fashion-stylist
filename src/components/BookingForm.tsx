@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,30 +54,20 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
   const onSubmit = async (data: BookingFormValues) => {
     setIsLoading(true);
     try {
-      // Use a raw SQL query to insert into the bookings table
-      const { error } = await supabase.rpc('create_booking', {
-        p_customer_id: customerId,
-        p_designer_id: designerId,
-        p_service_type: data.serviceType,
-        p_notes: data.notes || null,
-        p_booking_date: data.bookingDate.toISOString(),
+      // Use the edge function to create booking
+      const { data: result, error } = await supabase.functions.invoke('create-booking', {
+        body: {
+          p_customer_id: customerId,
+          p_designer_id: designerId,
+          p_service_type: data.serviceType,
+          p_notes: data.notes || null,
+          p_booking_date: data.bookingDate.toISOString(),
+        }
       });
 
       if (error) {
         console.error('Booking creation error:', error);
-        // Fallback: try direct insert (this might work if RLS allows it)
-        const { error: insertError } = await supabase
-          .from('design_projects')
-          .insert({
-            designer_id: designerId,
-            client_id: customerId,
-            title: data.serviceType,
-            description: data.notes,
-            deadline: data.bookingDate.toISOString(),
-            status: 'pending'
-          });
-        
-        if (insertError) throw insertError;
+        throw error;
       }
 
       toast.success("Booking request sent successfully!");

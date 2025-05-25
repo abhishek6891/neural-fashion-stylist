@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Star, MessageCircle, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import ProfileView from "./ProfileView";
 import BookingForm from "./BookingForm";
 import ChatDialog from "./ChatDialog";
