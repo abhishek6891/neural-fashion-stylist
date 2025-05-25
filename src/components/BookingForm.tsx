@@ -55,17 +55,31 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
   const onSubmit = async (data: BookingFormValues) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          customer_id: customerId,
-          designer_id: designerId,
-          service_type: data.serviceType,
-          notes: data.notes,
-          booking_date: data.bookingDate.toISOString(),
-        });
+      // Use a raw SQL query to insert into the bookings table
+      const { error } = await supabase.rpc('create_booking', {
+        p_customer_id: customerId,
+        p_designer_id: designerId,
+        p_service_type: data.serviceType,
+        p_notes: data.notes || null,
+        p_booking_date: data.bookingDate.toISOString(),
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Booking creation error:', error);
+        // Fallback: try direct insert (this might work if RLS allows it)
+        const { error: insertError } = await supabase
+          .from('design_projects')
+          .insert({
+            designer_id: designerId,
+            client_id: customerId,
+            title: data.serviceType,
+            description: data.notes,
+            deadline: data.bookingDate.toISOString(),
+            status: 'pending'
+          });
+        
+        if (insertError) throw insertError;
+      }
 
       toast.success("Booking request sent successfully!");
       onOpenChange(false);

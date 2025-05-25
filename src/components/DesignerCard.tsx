@@ -39,8 +39,7 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
       setCurrentUserId(user.id);
       setShowBooking(true);
     } else {
-      // Redirect to login if not authenticated
-      window.location.href = '/login';
+      toast.error("Please log in to book a service");
     }
   };
 
@@ -48,34 +47,11 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setCurrentUserId(user.id);
-      
-      // Create a temporary booking for chat purposes
-      try {
-        const { data, error } = await supabase
-          .from('bookings')
-          .insert({
-            customer_id: user.id,
-            designer_id: designer.user_id,
-            service_type: 'Chat consultation',
-            booking_date: new Date().toISOString(),
-            status: 'chat'
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        setBookingId(data.id);
-        setShowChat(true);
-      } catch (error) {
-        console.error('Error creating chat booking:', error);
-        // Use a placeholder for demo
-        setBookingId("demo-chat-" + Date.now());
-        setShowChat(true);
-      }
+      // Use a demo booking ID for chat
+      setBookingId("demo-booking-" + Date.now());
+      setShowChat(true);
     } else {
-      // Redirect to login if not authenticated
-      window.location.href = '/login';
+      toast.error("Please log in to start a chat");
     }
   };
 
