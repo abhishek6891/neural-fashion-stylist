@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -10,19 +10,61 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Menu, User, LogIn } from "lucide-react";
+import { Menu, User, LogIn, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [userType, setUserType] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // Check localStorage for user type on component mount
+  // Check localStorage for user type and authentication status
   useEffect(() => {
-    const storedUserType = localStorage.getItem('userType');
-    if (storedUserType) {
-      setUserType(storedUserType);
-    }
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      
+      if (session) {
+        const storedUserType = localStorage.getItem('userType');
+        if (storedUserType) {
+          setUserType(storedUserType);
+        }
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+      if (!session) {
+        setUserType(null);
+        localStorage.removeItem('userType');
+      } else {
+        const storedUserType = localStorage.getItem('userType');
+        if (storedUserType) {
+          setUserType(storedUserType);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('userType');
+      setUserType(null);
+      setIsAuthenticated(false);
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      toast.error("Error logging out");
+    }
+  };
 
   const navItems = [
     { name: "Discover", path: "/discover" },
@@ -61,7 +103,7 @@ const Navbar = () => {
               
               <DropdownMenuSeparator />
               
-              {!userType ? (
+              {!isAuthenticated ? (
                 <>
                   <DropdownMenuItem asChild>
                     <Link to="/login" className="text-fashion-purple font-medium">
@@ -76,10 +118,16 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span className="truncate">Your Profile</span>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    <span className="truncate">{userType === 'designer' ? 'Designer Profile' : 'Customer Profile'}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -95,7 +143,7 @@ const Navbar = () => {
               </Link>
             ))}
             
-            {!userType ? (
+            {!isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <Button variant="ghost" asChild>
                   <Link to="/login" className="flex gap-2 items-center">
@@ -108,10 +156,16 @@ const Navbar = () => {
                 </Button>
               </div>
             ) : (
-              <Button variant="ghost" className="relative flex gap-2 items-center">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{userType === 'designer' ? 'Designer' : 'Customer'}</span>
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" className="relative flex gap-2 items-center">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{userType === 'designer' ? 'Designer' : 'Customer'}</span>
+                </Button>
+                <Button variant="ghost" onClick={handleLogout} className="flex gap-2 items-center">
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Log out</span>
+                </Button>
+              </div>
             )}
           </div>
         )}
