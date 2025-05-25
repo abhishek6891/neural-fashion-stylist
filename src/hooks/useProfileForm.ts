@@ -66,11 +66,28 @@ export const useProfileForm = (
 
       console.log("Saving profile data:", profileData);
 
-      const { error } = await supabase
+      // Check if profile exists first
+      const { data: existingProfile } = await supabase
         .from(tableName)
-        .upsert(profileData, {
-          onConflict: 'user_id'
-        });
+        .select('id')
+        .eq('user_id', actualUserId)
+        .single();
+
+      let error;
+      if (existingProfile) {
+        // Update existing profile
+        const { error: updateError } = await supabase
+          .from(tableName)
+          .update(profileData)
+          .eq('user_id', actualUserId);
+        error = updateError;
+      } else {
+        // Insert new profile
+        const { error: insertError } = await supabase
+          .from(tableName)
+          .insert(profileData);
+        error = insertError;
+      }
 
       if (error) {
         console.error('Database error:', error);

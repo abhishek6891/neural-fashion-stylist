@@ -22,54 +22,91 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert AI fashion stylist. Your role is to provide personalized fashion advice, style recommendations, and outfit suggestions. You should:
-            
-            1. Analyze the user's style preferences, body type, and lifestyle
-            2. Suggest specific clothing items, colors, and combinations
-            3. Provide tips for different occasions (casual, formal, business, etc.)
-            4. Recommend fashion brands and shopping suggestions
-            5. Give advice on color coordination and styling techniques
-            6. Help with wardrobe organization and capsule wardrobe creation
-            7. Suggest accessories and how to incorporate trends
-            
-            Always be encouraging, specific, and helpful. If users ask about specific items, provide detailed styling advice. Be concise but informative.`
+    // Add retry logic for rate limiting
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
           },
-          {
-            role: 'user',
-            content: message
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an expert AI fashion stylist. Your role is to provide personalized fashion advice, style recommendations, and outfit suggestions. You should:
+                
+                1. Analyze the user's style preferences, body type, and lifestyle
+                2. Suggest specific clothing items, colors, and combinations
+                3. Provide tips for different occasions (casual, formal, business, etc.)
+                4. Recommend fashion brands and shopping suggestions
+                5. Give advice on color coordination and styling techniques
+                6. Help with wardrobe organization and capsule wardrobe creation
+                7. Suggest accessories and how to incorporate trends
+                
+                Always be encouraging, specific, and helpful. If users ask about specific items, provide detailed styling advice. Be concise but informative.`
+              },
+              {
+                role: 'user',
+                content: message
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 800,
+          }),
+        });
+
+        if (response.status === 429) {
+          // Rate limited, wait and retry
+          retryCount++;
+          if (retryCount < maxRetries) {
+            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
           }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
-    });
+          throw new Error('Rate limit exceeded. Please try again in a few moments.');
+        }
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const stylistResponse = data.choices[0].message.content;
+
+        return new Response(JSON.stringify({ 
+          response: stylistResponse,
+          images: getStyleImages(message) 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error) {
+        if (retryCount === maxRetries - 1) {
+          throw error;
+        }
+        retryCount++;
+        const waitTime = Math.pow(2, retryCount) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
-
-    const data = await response.json();
-    const stylistResponse = data.choices[0].message.content;
-
-    return new Response(JSON.stringify({ 
-      response: stylistResponse,
-      images: getStyleImages(message) 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error in ai-stylist function:', error);
+    
+    // Provide a fallback response for rate limiting
+    if (error.message.includes('Rate limit') || error.message.includes('429')) {
+      return new Response(JSON.stringify({ 
+        response: "I'm currently experiencing high demand. Here are some general style tips: Consider your body type when choosing clothes, stick to a cohesive color palette, and invest in quality basics like a well-fitted blazer, good jeans, and comfortable shoes. What specific style question can I help you with?",
+        images: getStyleImages("general styling tips")
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -40,22 +41,25 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  const sendMessage = async (retryMessage?: string) => {
+    const messageToSend = retryMessage || input;
+    if (!messageToSend.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: input,
-      isUser: true
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    if (!retryMessage) {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: messageToSend,
+        isUser: true
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setInput("");
+    }
+    
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-stylist', {
-        body: { message: input }
+        body: { message: messageToSend }
       });
 
       if (error) throw error;
@@ -68,19 +72,38 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error('Error getting AI response:', error);
-      toast.error("Sorry, I'm having trouble responding right now. Please try again.");
       
-      // Fallback response
+      let errorMessage = "Sorry, I'm having trouble responding right now. ";
+      let fallbackContent = "I'm currently experiencing some technical difficulties, but I'd love to help you with your style needs! Try asking me about outfit suggestions, color coordination, or styling tips.";
+      
+      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        errorMessage = "I'm experiencing high demand right now. ";
+        fallbackContent = "Due to high demand, I'm temporarily limited. In the meantime, here are some quick tips: Choose clothes that fit well, stick to colors that complement your skin tone, and invest in versatile pieces. Please try again in a moment!";
+      }
+      
+      toast.error(errorMessage + "Please try again.");
+      
+      // Add fallback message
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm currently experiencing some technical difficulties, but I'd love to help you with your style needs! Try asking me about outfit suggestions, color coordination, or styling tips.",
+        content: fallbackContent,
         isUser: false
       };
       setMessages(prev => [...prev, fallbackMessage]);
+      
+      setRetryCount(prev => prev + 1);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const retryLastMessage = () => {
+    const lastUserMessage = [...messages].reverse().find(msg => msg.isUser);
+    if (lastUserMessage) {
+      sendMessage(lastUserMessage.content);
     }
   };
 
@@ -101,9 +124,22 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
             <Sparkles className="h-5 w-5 text-purple-500" />
             AI Fashion Stylist
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-            ×
-          </Button>
+          <div className="flex items-center gap-2">
+            {retryCount > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={retryLastMessage}
+                disabled={isLoading}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+              ×
+            </Button>
+          </div>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col">
@@ -161,7 +197,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
               placeholder="Ask for style suggestions..."
               disabled={isLoading}
             />
-            <Button onClick={sendMessage} disabled={isLoading || !input.trim()}>
+            <Button onClick={() => sendMessage()} disabled={isLoading || !input.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
