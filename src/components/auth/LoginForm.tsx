@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,11 +66,11 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
 
       // Check for customer profile first
       try {
-        const { data: customerProfile, error: customerError } = await (supabase as any)
+        const { data: customerProfile, error: customerError } = await supabase
           .from('profile_measurements')
           .select('user_type')
           .eq('user_id', authData.user.id)
-          .single();
+          .maybeSingle();
         
         if (!customerError && customerProfile) {
           const userType = customerProfile.user_type as "customer" | "designer";
@@ -85,11 +84,11 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
       
       // If no customer profile, check for designer profile
       try {
-        const { data: designerProfile, error: designerError } = await (supabase as any)
+        const { data: designerProfile, error: designerError } = await supabase
           .from('designer_profiles')
           .select('user_type')
           .eq('user_id', authData.user.id)
-          .single();
+          .maybeSingle();
           
         if (!designerError && designerProfile) {
           const userType = designerProfile.user_type as "customer" | "designer";
@@ -105,7 +104,7 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
       onLoginSuccess(authData.user.id, null);
     } catch (error) {
       toast.error("An unexpected error occurred");
-      console.error(error);
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

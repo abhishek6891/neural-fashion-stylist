@@ -43,8 +43,7 @@ const ChatDialog = ({ isOpen, onOpenChange, bookingId, currentUserId }: ChatDial
     // Fetch existing messages
     const fetchMessages = async () => {
       try {
-        // Use type assertion to work around missing types
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from('chat_messages')
           .select('*')
           .eq('booking_id', bookingId)
@@ -90,8 +89,7 @@ const ChatDialog = ({ isOpen, onOpenChange, bookingId, currentUserId }: ChatDial
 
     setIsLoading(true);
     try {
-      // Use type assertion to work around missing types
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('chat_messages')
         .insert({
           booking_id: bookingId,

@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProfileFormValues } from "@/schemas/profileSchema";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,14 +14,14 @@ export const useProfileForm = (
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!userId || !userType) {
-      toast.error("User type not selected");
+      toast.error("User information missing");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Get the current authenticated user
+      // Get the current authenticated user to verify
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
@@ -30,11 +29,14 @@ export const useProfileForm = (
         return;
       }
 
+      // Ensure we're using the authenticated user's ID
+      const actualUserId = user.id;
+
       // Store the profile in the appropriate table
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
-      const profileData = {
-        user_id: user.id, // Use the authenticated user's ID
+      const profileData: any = {
+        user_id: actualUserId,
         user_type: userType,
         height: data.height,
         weight: data.weight,
@@ -64,9 +66,11 @@ export const useProfileForm = (
 
       console.log("Saving profile data:", profileData);
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from(tableName)
-        .upsert(profileData);
+        .upsert(profileData, {
+          onConflict: 'user_id'
+        });
 
       if (error) {
         console.error('Database error:', error);
@@ -76,6 +80,9 @@ export const useProfileForm = (
 
       toast.success("Profile information saved successfully!");
       onOpenChange(false);
+      
+      // Store user type in localStorage
+      localStorage.setItem('userType', userType);
       
       // Use the onComplete callback if provided
       if (onComplete) {

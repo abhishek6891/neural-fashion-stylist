@@ -38,6 +38,9 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
     if (user) {
       setCurrentUserId(user.id);
       setShowBooking(true);
+    } else {
+      // Redirect to login if not authenticated
+      window.location.href = '/login';
     }
   };
 
@@ -45,16 +48,39 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setCurrentUserId(user.id);
-      // For demo purposes, we'll use a placeholder booking ID
-      // In a real app, you'd need to create or find an existing booking
-      setBookingId("placeholder-booking-id");
-      setShowChat(true);
+      
+      // Create a temporary booking for chat purposes
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .insert({
+            customer_id: user.id,
+            designer_id: designer.user_id,
+            service_type: 'Chat consultation',
+            booking_date: new Date().toISOString(),
+            status: 'chat'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        setBookingId(data.id);
+        setShowChat(true);
+      } catch (error) {
+        console.error('Error creating chat booking:', error);
+        // Use a placeholder for demo
+        setBookingId("demo-chat-" + Date.now());
+        setShowChat(true);
+      }
+    } else {
+      // Redirect to login if not authenticated
+      window.location.href = '/login';
     }
   };
 
   const handleBookingCreated = () => {
     setShowBooking(false);
-    // You could open the chat here with the new booking ID
   };
 
   return (
@@ -91,13 +117,13 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
               size="sm"
               onClick={() => setShowProfile(true)}
             >
-              {t('viewProfile')}
+              View Profile
             </Button>
             <Button 
               size="sm"
               onClick={handleBookNow}
             >
-              {t('bookNow')}
+              Book Now
             </Button>
           </div>
 
@@ -108,7 +134,7 @@ const DesignerCard = ({ designer }: DesignerCardProps) => {
             onClick={handleChat}
           >
             <MessageCircle className="h-4 w-4 mr-2" />
-            {t('chat')}
+            Chat
           </Button>
         </CardContent>
       </Card>

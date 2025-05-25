@@ -29,7 +29,7 @@ import { format } from "date-fns";
 
 const bookingSchema = z.object({
   serviceType: z.string().min(1, "Service type is required"),
-  description: z.string().optional(),
+  notes: z.string().optional(),
   bookingDate: z.date({
     required_error: "Please select a booking date",
   }),
@@ -55,14 +55,13 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
   const onSubmit = async (data: BookingFormValues) => {
     setIsLoading(true);
     try {
-      // Use type assertion to work around missing types
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('bookings')
         .insert({
           customer_id: customerId,
           designer_id: designerId,
           service_type: data.serviceType,
-          description: data.description,
+          notes: data.notes,
           booking_date: data.bookingDate.toISOString(),
         });
 
@@ -105,10 +104,10 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
 
             <FormField
               control={form.control}
-              name="description"
+              name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Notes</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Describe your requirements..." {...field} />
                   </FormControl>
