@@ -20,9 +20,11 @@ const TailorNetwork = () => {
 
   const fetchDesigners = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('designer_profiles')
-        .select('*');
+        .select('*')
+        .eq('user_type', 'designer')
+        .limit(6); // Show only first 6 for the network section
 
       if (error) {
         console.error('Error fetching designers:', error);
@@ -38,7 +40,8 @@ const TailorNetwork = () => {
 
   const filteredDesigners = designers.filter((designer: any) =>
     designer.specialization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    designer.location?.toLowerCase().includes(searchTerm.toLowerCase())
+    designer.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    designer.bio?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
