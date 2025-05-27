@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -57,6 +56,7 @@ const SignupForm = ({
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
+    console.log("Starting signup process...");
 
     try {
       const { data: authData, error } = await supabase.auth.signUp({
@@ -65,19 +65,25 @@ const SignupForm = ({
       });
 
       if (error) {
+        console.error("Signup error:", error);
         toast.error(error.message);
         return;
       }
 
+      if (!authData?.user?.id) {
+        console.error("No user ID returned from signup");
+        toast.error("Signup failed - no user created");
+        return;
+      }
+
+      console.log("Signup successful, user ID:", authData.user.id);
       toast.success("Account created successfully!");
 
-      // Check if user has profile measurements
-      if (authData?.user?.id) {
-        onSignupSuccess(authData.user.id, userType);
-      }
+      // Immediately proceed to profile creation with the new user ID
+      onSignupSuccess(authData.user.id, userType);
     } catch (error) {
+      console.error("Unexpected signup error:", error);
       toast.error("An unexpected error occurred");
-      console.error(error);
     } finally {
       setIsLoading(false);
     }

@@ -22,25 +22,15 @@ export const useProfileForm = (
     console.log("Starting profile submission for:", { userId, userType, data });
 
     try {
-      // Get the current authenticated user to verify
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error("Auth error:", authError);
-        toast.error("Please log in to save your profile");
-        return;
-      }
-
-      console.log("Authenticated user:", user.id);
-
-      // Ensure we're using the authenticated user's ID
-      const actualUserId = user.id;
+      // Use the provided userId directly instead of trying to get current user
+      // This ensures we work with the just-signed-up user
+      console.log("Using provided user ID:", userId);
 
       // Store the profile in the appropriate table
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
       const profileData: any = {
-        user_id: actualUserId,
+        user_id: userId,
         user_type: userType,
         height: data.height,
         weight: data.weight,
@@ -74,7 +64,7 @@ export const useProfileForm = (
       const { data: existingProfile, error: checkError } = await supabase
         .from(tableName)
         .select('id')
-        .eq('user_id', actualUserId)
+        .eq('user_id', userId)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
@@ -90,7 +80,7 @@ export const useProfileForm = (
         const { error: updateError } = await supabase
           .from(tableName)
           .update(profileData)
-          .eq('user_id', actualUserId);
+          .eq('user_id', userId);
         error = updateError;
       } else {
         // Insert new profile
