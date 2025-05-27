@@ -10,10 +10,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Ruler, User } from "lucide-react";
-import { ProfileFormValues } from "@/schemas/profileSchema";
+import { SignupProfileFormValues } from "@/schemas/profileSchema";
 
 interface CustomerMeasurementsFieldsProps {
-  control: Control<ProfileFormValues>;
+  control: Control<SignupProfileFormValues>;
 }
 
 const CustomerMeasurementsFields = ({ control }: CustomerMeasurementsFieldsProps) => {
@@ -25,7 +25,7 @@ const CustomerMeasurementsFields = ({ control }: CustomerMeasurementsFieldsProps
         render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-1">
-              <User className="h-4 w-4" /> Chest
+              <User className="h-4 w-4" /> Chest (Optional)
             </FormLabel>
             <FormControl>
               <Input placeholder="e.g., 90 cm" {...field} />
@@ -41,7 +41,7 @@ const CustomerMeasurementsFields = ({ control }: CustomerMeasurementsFieldsProps
         render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-1">
-              <User className="h-4 w-4" /> Waist
+              <User className="h-4 w-4" /> Waist (Optional)
             </FormLabel>
             <FormControl>
               <Input placeholder="e.g., 75 cm" {...field} />
@@ -57,7 +57,7 @@ const CustomerMeasurementsFields = ({ control }: CustomerMeasurementsFieldsProps
         render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-1">
-              <User className="h-4 w-4" /> Hip
+              <User className="h-4 w-4" /> Hip (Optional)
             </FormLabel>
             <FormControl>
               <Input placeholder="e.g., 95 cm" {...field} />

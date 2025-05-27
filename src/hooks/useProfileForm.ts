@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ProfileFormValues } from "@/schemas/profileSchema";
+import { SignupProfileFormValues } from "@/schemas/profileSchema";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useProfileForm = (
@@ -12,22 +12,26 @@ export const useProfileForm = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const onSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = async (data: SignupProfileFormValues) => {
     if (!userId || !userType) {
       toast.error("User information missing");
       return;
     }
 
     setIsLoading(true);
+    console.log("Starting profile submission for:", { userId, userType, data });
 
     try {
       // Get the current authenticated user to verify
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
+        console.error("Auth error:", authError);
         toast.error("Please log in to save your profile");
         return;
       }
+
+      console.log("Authenticated user:", user.id);
 
       // Ensure we're using the authenticated user's ID
       const actualUserId = user.id;
@@ -47,9 +51,9 @@ export const useProfileForm = (
       // Add additional fields for customer measurements
       if (userType === "customer") {
         Object.assign(profileData, {
-          chest: data.chest,
-          waist: data.waist,
-          hip: data.hip,
+          chest: data.chest || null,
+          waist: data.waist || null,
+          hip: data.hip || null,
           inseam: data.inseam || null,
           shoe_size: data.shoeSize || null,
         });
@@ -64,18 +68,25 @@ export const useProfileForm = (
         });
       }
 
-      console.log("Saving profile data:", profileData);
+      console.log("Saving profile data to table:", tableName, profileData);
 
       // Check if profile exists first
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
         .from(tableName)
         .select('id')
         .eq('user_id', actualUserId)
         .single();
 
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking existing profile:', checkError);
+        toast.error(`Error checking profile: ${checkError.message}`);
+        return;
+      }
+
       let error;
       if (existingProfile) {
         // Update existing profile
+        console.log("Updating existing profile");
         const { error: updateError } = await supabase
           .from(tableName)
           .update(profileData)
@@ -83,6 +94,7 @@ export const useProfileForm = (
         error = updateError;
       } else {
         // Insert new profile
+        console.log("Inserting new profile");
         const { error: insertError } = await supabase
           .from(tableName)
           .insert(profileData);
@@ -95,11 +107,14 @@ export const useProfileForm = (
         return;
       }
 
-      toast.success("Profile information saved successfully!");
-      onOpenChange(false);
+      console.log("Profile saved successfully!");
+      toast.success("Profile created successfully! Welcome to Neural Threads!");
       
       // Store user type in localStorage
       localStorage.setItem('userType', userType);
+      
+      // Close the profile form
+      onOpenChange(false);
       
       // Use the onComplete callback if provided
       if (onComplete) {

@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Ruler, Scale, CalendarDays } from "lucide-react";
-import { ProfileFormValues } from "@/schemas/profileSchema";
+import { SignupProfileFormValues } from "@/schemas/profileSchema";
 
 interface BasicInfoFieldsProps {
-  control: Control<ProfileFormValues>;
+  control: Control<SignupProfileFormValues>;
 }
 
 const BasicInfoFields = ({ control }: BasicInfoFieldsProps) => {

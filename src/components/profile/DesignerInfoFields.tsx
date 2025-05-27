@@ -8,11 +8,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { User, CalendarDays } from "lucide-react";
-import { ProfileFormValues } from "@/schemas/profileSchema";
+import { User, CalendarDays, MapPin } from "lucide-react";
+import { SignupProfileFormValues } from "@/schemas/profileSchema";
 
 interface DesignerInfoFieldsProps {
-  control: Control<ProfileFormValues>;
+  control: Control<SignupProfileFormValues>;
 }
 
 const DesignerInfoFields = ({ control }: DesignerInfoFieldsProps) => {
@@ -24,7 +24,7 @@ const DesignerInfoFields = ({ control }: DesignerInfoFieldsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-1">
-              <User className="h-4 w-4" /> Specialization
+              <User className="h-4 w-4" /> Specialization (Optional)
             </FormLabel>
             <FormControl>
               <Input placeholder="e.g., Wedding dresses, Suits" {...field} />
@@ -56,7 +56,7 @@ const DesignerInfoFields = ({ control }: DesignerInfoFieldsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="flex items-center gap-1">
-              <User className="h-4 w-4" /> Location
+              <MapPin className="h-4 w-4" /> Location (Optional)
             </FormLabel>
             <FormControl>
               <Input placeholder="e.g., Mumbai, India" {...field} />

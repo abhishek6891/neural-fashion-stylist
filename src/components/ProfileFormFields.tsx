@@ -5,20 +5,20 @@ import {
   Form,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { profileSchema, ProfileFormValues } from "@/schemas/profileSchema";
+import { signupProfileSchema, SignupProfileFormValues } from "@/schemas/profileSchema";
 import BasicInfoFields from "./profile/BasicInfoFields";
 import CustomerMeasurementsFields from "./profile/CustomerMeasurementsFields";
 import DesignerInfoFields from "./profile/DesignerInfoFields";
 
 interface ProfileFormFieldsProps {
-  onSubmit: (data: ProfileFormValues) => Promise<void>;
+  onSubmit: (data: SignupProfileFormValues) => Promise<void>;
   isLoading: boolean;
   userType: "customer" | "designer" | null;
 }
 
 const ProfileFormFields = ({ onSubmit, isLoading, userType }: ProfileFormFieldsProps) => {
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+  const form = useForm<SignupProfileFormValues>({
+    resolver: zodResolver(signupProfileSchema),
     defaultValues: {
       height: "",
       weight: "",
@@ -34,9 +34,14 @@ const ProfileFormFields = ({ onSubmit, isLoading, userType }: ProfileFormFieldsP
     },
   });
 
+  const handleSubmit = async (data: SignupProfileFormValues) => {
+    console.log("Profile form submission started:", data);
+    await onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <BasicInfoFields control={form.control} />
           
@@ -50,7 +55,7 @@ const ProfileFormFields = ({ onSubmit, isLoading, userType }: ProfileFormFieldsP
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Profile"}
+          {isLoading ? "Saving..." : "Complete Profile & Continue"}
         </Button>
       </form>
     </Form>
