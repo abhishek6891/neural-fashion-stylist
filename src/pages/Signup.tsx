@@ -15,6 +15,7 @@ const Signup = () => {
     userId: string,
     userType: "customer" | "designer"
   ) => {
+    console.log("Signup success, showing profile form for:", { userId, userType });
     // Store the user ID and show the profile form
     setUserId(userId);
     setUserType(userType);
@@ -22,15 +23,15 @@ const Signup = () => {
   };
 
   const handleUserTypeChange = (type: "customer" | "designer") => {
+    console.log("User type changed to:", type);
     setUserType(type);
   };
 
   const handleProfileComplete = () => {
-    navigate("/");
+    console.log("Profile completed for user type:", userType);
     // Store user type in localStorage
     localStorage.setItem('userType', userType);
-    // Refresh the page to reflect changes
-    window.location.reload();
+    navigate("/");
   };
 
   return (
@@ -50,8 +51,8 @@ const Signup = () => {
         />
       </AuthLayout>
 
-      {/* Profile Measurements Form */}
-      {userId && (
+      {/* Profile Form - only show after successful signup */}
+      {userId && showProfileForm && (
         <ProfileForm
           isOpen={showProfileForm}
           onOpenChange={setShowProfileForm}

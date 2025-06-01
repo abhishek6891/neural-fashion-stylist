@@ -22,14 +22,11 @@ export const useProfileForm = (
     console.log("Starting profile submission for:", { userId, userType, data });
 
     try {
-      // Use the provided userId directly instead of trying to get current user
-      // This ensures we work with the just-signed-up user
-      console.log("Using provided user ID:", userId);
-
-      // Store the profile in the appropriate table
+      // Determine the correct table based on user type
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
-      const profileData: any = {
+      // Base profile data that's common to both types
+      const baseProfileData = {
         user_id: userId,
         user_type: userType,
         height: data.height,
@@ -39,7 +36,9 @@ export const useProfileForm = (
         updated_at: new Date().toISOString(),
       };
       
-      // Add additional fields for customer measurements
+      let profileData: any = { ...baseProfileData };
+      
+      // Add type-specific fields
       if (userType === "customer") {
         Object.assign(profileData, {
           chest: data.chest || null,
@@ -48,10 +47,7 @@ export const useProfileForm = (
           inseam: data.inseam || null,
           shoe_size: data.shoeSize || null,
         });
-      }
-      
-      // Add designer-specific fields
-      if (userType === "designer") {
+      } else if (userType === "designer") {
         Object.assign(profileData, {
           specialization: data.specialization || null,
           experience: data.experience || null,
@@ -61,20 +57,19 @@ export const useProfileForm = (
 
       console.log("Saving profile data to table:", tableName, profileData);
 
-      // Always insert new profile (no update logic for signup)
-      console.log("Inserting new profile");
+      // Insert the profile into the appropriate table
       const { error } = await supabase
         .from(tableName)
         .insert(profileData);
 
       if (error) {
         console.error('Database error:', error);
-        toast.error(`Failed to save profile: ${error.message}`);
+        toast.error(`Failed to save ${userType} profile: ${error.message}`);
         return;
       }
 
-      console.log("Profile saved successfully!");
-      toast.success("Profile created successfully! Welcome to Neural Threads!");
+      console.log(`${userType} profile saved successfully!`);
+      toast.success(`${userType === 'designer' ? 'Designer' : 'Customer'} profile created successfully! Welcome to Neural Threads!`);
       
       // Store user type in localStorage
       localStorage.setItem('userType', userType);
