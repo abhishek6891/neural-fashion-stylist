@@ -30,7 +30,6 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -40,6 +39,28 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const getFallbackResponse = (message: string) => {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('color') || lowerMessage.includes('colour')) {
+      return "For color coordination, consider these tips: Stick to a maximum of 3 colors in one outfit. Use the color wheel - complementary colors (opposite on the wheel) create striking looks, while analogous colors (next to each other) create harmony. Neutral colors like black, white, gray, and beige work with almost everything!";
+    }
+    
+    if (lowerMessage.includes('formal') || lowerMessage.includes('business')) {
+      return "For formal/business attire: Choose well-fitted pieces in classic colors (navy, black, gray). A blazer instantly elevates any outfit. For men: suit or dress pants with button-down shirt. For women: blazer with dress pants/skirt, or a sheath dress. Always ensure your shoes are polished and professional.";
+    }
+    
+    if (lowerMessage.includes('casual')) {
+      return "For casual looks: Dark jeans are versatile and flattering. Layer with cardigans, blazers, or jackets. Choose comfortable but fitted pieces. Mix textures for interest. Sneakers, loafers, or ankle boots work well. Don't forget accessories - they can make a simple outfit look intentional!";
+    }
+    
+    if (lowerMessage.includes('body type') || lowerMessage.includes('figure')) {
+      return "Dressing for your body type: Focus on fit over trends. Emphasize your favorite features. A-line cuts flatter most body types. High-waisted bottoms create a longer leg line. V-necks elongate the torso. The most important thing is wearing clothes that make YOU feel confident!";
+    }
+    
+    return "I'd love to help with your style questions! Here are some universal style tips: Invest in quality basics, ensure proper fit, choose a cohesive color palette, and add personality with accessories. What specific style area would you like advice on - colors, occasions, body type, or something else?";
+  };
 
   const sendMessage = async (retryMessage?: string) => {
     const messageToSend = retryMessage || input;
@@ -58,43 +79,42 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
     setIsLoading(true);
 
     try {
+      console.log("Sending message to AI stylist:", messageToSend);
+      
       const { data, error } = await supabase.functions.invoke('ai-stylist', {
         body: { message: messageToSend }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('AI stylist error:', error);
+        throw error;
+      }
+
+      console.log("AI stylist response:", data);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: data.response || getFallbackResponse(messageToSend),
         isUser: false,
-        images: data.images
+        images: data.images || []
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error('Error getting AI response:', error);
       
-      let errorMessage = "Sorry, I'm having trouble responding right now. ";
-      let fallbackContent = "I'm currently experiencing some technical difficulties, but I'd love to help you with your style needs! Try asking me about outfit suggestions, color coordination, or styling tips.";
-      
-      if (error.message?.includes('Rate limit') || error.message?.includes('429')) {
-        errorMessage = "I'm experiencing high demand right now. ";
-        fallbackContent = "Due to high demand, I'm temporarily limited. In the meantime, here are some quick tips: Choose clothes that fit well, stick to colors that complement your skin tone, and invest in versatile pieces. Please try again in a moment!";
-      }
-      
-      toast.error(errorMessage + "Please try again.");
-      
-      // Add fallback message
+      // Always provide a helpful fallback response
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: fallbackContent,
+        content: getFallbackResponse(messageToSend),
         isUser: false
       };
       setMessages(prev => [...prev, fallbackMessage]);
       
-      setRetryCount(prev => prev + 1);
+      // Only show error toast for unexpected errors
+      if (!error.message?.includes('Rate limit') && !error.message?.includes('429')) {
+        toast.error("I'm having a moment, but I provided some general advice above. Please try again!");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -125,17 +145,15 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
             AI Fashion Stylist
           </CardTitle>
           <div className="flex items-center gap-2">
-            {retryCount > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={retryLastMessage}
-                disabled={isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Retry
-              </Button>
-            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={retryLastMessage}
+              disabled={isLoading}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
               ×
             </Button>
@@ -159,7 +177,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
                   >
                     <p className="text-sm">{message.content}</p>
                     
-                    {message.images && (
+                    {message.images && message.images.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 mt-3">
                         {message.images.map((image, index) => (
                           <img

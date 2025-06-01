@@ -18,11 +18,13 @@ const Login = () => {
     console.log("Login success:", { userId, userType });
     
     if (userType) {
-      // User has a profile, redirect to home
+      // User has a profile, redirect to home immediately
       localStorage.setItem('userType', userType);
       navigate("/");
+      // No need to reload the page, just navigate
     } else {
       // If no profile found, show the profile form
+      console.log("No profile found, showing profile creation form");
       setUserId(userId);
       setUserType("customer"); // Default to customer
       setShowProfileForm(true);
@@ -36,8 +38,6 @@ const Login = () => {
     if (userType) {
       localStorage.setItem('userType', userType);
     }
-    // Refresh the page to reflect changes
-    window.location.reload();
   };
 
   return (
@@ -53,8 +53,8 @@ const Login = () => {
         <LoginForm onLoginSuccess={handleLoginSuccess} />
       </AuthLayout>
       
-      {/* Profile Measurements Form */}
-      {userId && userType && (
+      {/* Profile Measurements Form - only show if user has no profile */}
+      {userId && userType && showProfileForm && (
         <ProfileForm 
           isOpen={showProfileForm}
           onOpenChange={setShowProfileForm} 

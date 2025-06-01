@@ -4,6 +4,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Eye, EyeOff } from "lucide-react";
+
 import {
   Form,
   FormControl,
@@ -14,21 +17,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
 });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
-  onLoginSuccess: (
-    userId: string, 
-    userType: "customer" | "designer" | null
-  ) => void;
+  onLoginSuccess: (userId: string, userType: "customer" | "designer" | null) => void;
 }
 
 const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
@@ -45,7 +43,8 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    
+    console.log("Starting login process...");
+
     try {
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -53,58 +52,51 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
       });
 
       if (error) {
+        console.error("Login error:", error);
         toast.error(error.message);
         return;
       }
 
       if (!authData?.user?.id) {
-        toast.error("Login failed - no user data received");
+        console.error("No user ID returned from login");
+        toast.error("Login failed - no user found");
         return;
       }
 
+      console.log("Login successful, user ID:", authData.user.id);
       toast.success("Logged in successfully!");
 
-      // Check for customer profile first
-      try {
-        const { data: customerProfile, error: customerError } = await supabase
-          .from('profile_measurements')
-          .select('user_type')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-        
-        if (!customerError && customerProfile) {
-          const userType = customerProfile.user_type as "customer" | "designer";
-          localStorage.setItem('userType', userType);
-          onLoginSuccess(authData.user.id, userType);
-          return;
-        }
-      } catch (err) {
-        console.log("No customer profile found, checking designer profile");
-      }
+      // Check if user has an existing profile
+      const userId = authData.user.id;
       
-      // If no customer profile, check for designer profile
-      try {
-        const { data: designerProfile, error: designerError } = await supabase
-          .from('designer_profiles')
-          .select('user_type')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-          
-        if (!designerError && designerProfile) {
-          const userType = designerProfile.user_type as "customer" | "designer";
-          localStorage.setItem('userType', userType);
-          onLoginSuccess(authData.user.id, userType);
-          return;
-        }
-      } catch (err) {
-        console.log("No designer profile found");
-      }
+      // Check both customer and designer profiles
+      const { data: customerProfile } = await supabase
+        .from('profile_measurements')
+        .select('user_type')
+        .eq('user_id', userId)
+        .single();
+
+      const { data: designerProfile } = await supabase
+        .from('designer_profiles')
+        .select('user_type')
+        .eq('user_id', userId)
+        .single();
+
+      let userType: "customer" | "designer" | null = null;
       
-      // If no profile found, show the profile form with default type
-      onLoginSuccess(authData.user.id, null);
+      if (customerProfile) {
+        userType = "customer";
+      } else if (designerProfile) {
+        userType = "designer";
+      }
+
+      console.log("User profile check:", { customerProfile, designerProfile, userType });
+
+      // Pass the user type to parent component
+      onLoginSuccess(userId, userType);
     } catch (error) {
+      console.error("Unexpected login error:", error);
       toast.error("An unexpected error occurred");
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -135,10 +127,10 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder="Enter your password" 
-                    {...field} 
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    {...field}
                   />
                   <Button
                     type="button"
@@ -157,7 +149,7 @@ const LoginForm = ({ onLoginSuccess }: LoginFormProps) => {
         />
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Log in"}
+          {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </form>
     </Form>

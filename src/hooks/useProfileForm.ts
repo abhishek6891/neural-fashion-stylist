@@ -35,6 +35,7 @@ export const useProfileForm = (
         height: data.height,
         weight: data.weight,
         age: data.age,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
       
@@ -60,36 +61,11 @@ export const useProfileForm = (
 
       console.log("Saving profile data to table:", tableName, profileData);
 
-      // Check if profile exists first
-      const { data: existingProfile, error: checkError } = await supabase
+      // Always insert new profile (no update logic for signup)
+      console.log("Inserting new profile");
+      const { error } = await supabase
         .from(tableName)
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking existing profile:', checkError);
-        toast.error(`Error checking profile: ${checkError.message}`);
-        return;
-      }
-
-      let error;
-      if (existingProfile) {
-        // Update existing profile
-        console.log("Updating existing profile");
-        const { error: updateError } = await supabase
-          .from(tableName)
-          .update(profileData)
-          .eq('user_id', userId);
-        error = updateError;
-      } else {
-        // Insert new profile
-        console.log("Inserting new profile");
-        const { error: insertError } = await supabase
-          .from(tableName)
-          .insert(profileData);
-        error = insertError;
-      }
+        .insert(profileData);
 
       if (error) {
         console.error('Database error:', error);
