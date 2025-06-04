@@ -15,10 +15,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting booking creation process...');
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    const requestBody = await req.json();
+    console.log('Request body:', requestBody);
 
     const { 
       p_customer_id, 
@@ -26,33 +31,65 @@ serve(async (req) => {
       p_service_type, 
       p_notes, 
       p_booking_date 
-    } = await req.json();
+    } = requestBody;
+
+    console.log('Extracted parameters:', {
+      p_customer_id,
+      p_designer_id,
+      p_service_type,
+      p_notes,
+      p_booking_date
+    });
+
+    // Validate required fields
+    if (!p_customer_id || !p_designer_id || !p_service_type || !p_booking_date) {
+      console.error('Missing required fields');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields: customer_id, designer_id, service_type, and booking_date are required' 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Insert into the bookings table using the service role key
+    console.log('Attempting to insert booking...');
     const { data, error } = await supabaseClient
       .from('bookings')
       .insert({
         customer_id: p_customer_id,
         designer_id: p_designer_id,
         service_type: p_service_type,
-        notes: p_notes,
+        notes: p_notes || null,
         booking_date: p_booking_date,
+        status: 'pending', // Set initial status
       })
       .select()
       .single();
 
     if (error) {
+      console.error('Database error:', error);
       throw error;
     }
+
+    console.log('Booking created successfully:', data);
 
     return new Response(JSON.stringify({ data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error creating booking:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred while creating the booking'
+      }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
