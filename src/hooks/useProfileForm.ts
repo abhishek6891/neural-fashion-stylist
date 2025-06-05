@@ -14,7 +14,7 @@ export const useProfileForm = (
 
   const onSubmit = async (data: SignupProfileFormValues) => {
     if (!userId || !userType) {
-      toast.error("User information missing");
+      toast.error("User information missing. Please try logging in again.");
       return;
     }
 
@@ -22,17 +22,30 @@ export const useProfileForm = (
     console.log("Starting profile submission for:", { userId, userType, data });
 
     try {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please log in to save your profile");
+        return;
+      }
+
       // Determine the correct table based on user type
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from(tableName)
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
       // Base profile data that's common to both types
       const baseProfileData = {
         user_id: userId,
         user_type: userType,
-        height: data.height,
-        weight: data.weight,
-        age: data.age,
-        created_at: new Date().toISOString(),
+        height: data.height || null,
+        weight: data.weight || null,
+        age: data.age || null,
         updated_at: new Date().toISOString(),
       };
       
@@ -57,10 +70,22 @@ export const useProfileForm = (
 
       console.log("Saving profile data to table:", tableName, profileData);
 
-      // Insert the profile into the appropriate table
-      const { error } = await supabase
-        .from(tableName)
-        .insert(profileData);
+      let result;
+      if (existingProfile) {
+        // Update existing profile
+        result = await supabase
+          .from(tableName)
+          .update(profileData)
+          .eq('user_id', userId);
+      } else {
+        // Insert new profile
+        profileData.created_at = new Date().toISOString();
+        result = await supabase
+          .from(tableName)
+          .insert(profileData);
+      }
+
+      const { error } = result;
 
       if (error) {
         console.error('Database error:', error);
@@ -69,7 +94,7 @@ export const useProfileForm = (
       }
 
       console.log(`${userType} profile saved successfully!`);
-      toast.success(`${userType === 'designer' ? 'Designer' : 'Customer'} profile created successfully! Welcome to Neural Threads!`);
+      toast.success(`${userType === 'designer' ? 'Designer' : 'Customer'} profile ${existingProfile ? 'updated' : 'created'} successfully! Welcome to Neural Threads!`);
       
       // Store user type in localStorage
       localStorage.setItem('userType', userType);
@@ -83,7 +108,7 @@ export const useProfileForm = (
       }
     } catch (error) {
       console.error('Profile save error:', error);
-      toast.error("An unexpected error occurred while saving your profile");
+      toast.error("An unexpected error occurred while saving your profile. Please try again.");
     } finally {
       setIsLoading(false);
     }

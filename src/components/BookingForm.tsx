@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,34 +50,87 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      serviceType: "",
+      notes: "",
+    },
   });
 
   const onSubmit = async (data: BookingFormValues) => {
+    if (!customerId || !designerId) {
+      toast.error("Please log in to book a service");
+      return;
+    }
+
     setIsLoading(true);
+    console.log("Starting booking creation...", { customerId, designerId, data });
+
     try {
+      // Validate inputs before sending
+      if (!data.serviceType.trim()) {
+        toast.error("Please specify the service type");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!data.bookingDate) {
+        toast.error("Please select a booking date");
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please log in to book a service");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Calling create-booking function with:", {
+        p_customer_id: customerId,
+        p_designer_id: designerId,
+        p_service_type: data.serviceType.trim(),
+        p_notes: data.notes?.trim() || null,
+        p_booking_date: data.bookingDate.toISOString(),
+      });
+
       // Use the edge function to create booking
       const { data: result, error } = await supabase.functions.invoke('create-booking', {
         body: {
           p_customer_id: customerId,
           p_designer_id: designerId,
-          p_service_type: data.serviceType,
-          p_notes: data.notes || null,
+          p_service_type: data.serviceType.trim(),
+          p_notes: data.notes?.trim() || null,
           p_booking_date: data.bookingDate.toISOString(),
         }
       });
 
+      console.log("Function response:", { result, error });
+
       if (error) {
         console.error('Booking creation error:', error);
-        throw error;
+        toast.error(`Failed to create booking: ${error.message || 'Unknown error occurred'}`);
+        return;
       }
 
-      toast.success("Booking request sent successfully!");
-      onOpenChange(false);
+      // Success case
+      console.log("Booking created successfully:", result);
+      toast.success("🎉 Booking request sent successfully! The designer will be notified and will contact you soon.", {
+        duration: 5000,
+      });
+      
+      // Reset form and close dialog
       form.reset();
-      if (onBookingCreated) onBookingCreated();
+      onOpenChange(false);
+      
+      // Call the callback if provided
+      if (onBookingCreated) {
+        onBookingCreated();
+      }
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error("Failed to create booking");
+      toast.error("Failed to create booking. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +152,10 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
                 <FormItem>
                   <FormLabel>Service Type</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Custom suit, Wedding dress" {...field} />
+                    <Input 
+                      placeholder="e.g., Custom suit, Wedding dress, Alterations" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -110,9 +167,13 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Additional Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Describe your requirements..." {...field} />
+                    <Textarea 
+                      placeholder="Describe your requirements, preferred style, timeline, etc..." 
+                      className="min-h-[80px]"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -159,7 +220,7 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
             />
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Booking..." : "Book Now"}
+              {isLoading ? "Creating Booking..." : "Send Booking Request"}
             </Button>
           </form>
         </Form>
