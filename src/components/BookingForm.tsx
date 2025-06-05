@@ -114,10 +114,20 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
         return;
       }
 
+      if (result?.error) {
+        console.error('Server error:', result.error);
+        toast.error(`Booking failed: ${result.error}`);
+        return;
+      }
+
       // Success case
       console.log("Booking created successfully:", result);
       toast.success("🎉 Booking request sent successfully! The designer will be notified and will contact you soon.", {
         duration: 5000,
+        style: {
+          background: '#10B981',
+          color: 'white',
+        },
       });
       
       // Reset form and close dialog
@@ -138,9 +148,9 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Book a Service</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-center">Book a Service</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -150,7 +160,7 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
               name="serviceType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Service Type</FormLabel>
+                  <FormLabel>Service Type *</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="e.g., Custom suit, Wedding dress, Alterations" 
@@ -185,7 +195,7 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
               name="bookingDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Preferred Date</FormLabel>
+                  <FormLabel>Preferred Date *</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -219,9 +229,24 @@ const BookingForm = ({ isOpen, onOpenChange, designerId, customerId, onBookingCr
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating Booking..." : "Send Booking Request"}
-            </Button>
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1" 
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="flex-1 bg-primary hover:bg-primary/90" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Sending..." : "Send Request"}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>

@@ -33,11 +33,17 @@ export const useProfileForm = (
       const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
       
       // Check if profile already exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
         .from(tableName)
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing profile:', checkError);
+        toast.error(`Failed to check existing profile: ${checkError.message}`);
+        return;
+      }
 
       // Base profile data that's common to both types
       const baseProfileData = {
