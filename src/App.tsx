@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import DesignerDashboard from "./pages/DesignerDashboard";
 
 // Initialize React Query
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => {
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/designer-dashboard" element={<DesignerDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

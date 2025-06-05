@@ -1,174 +1,158 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { User, LogOut, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, User, LogIn, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
-  const isMobile = useIsMobile();
-  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  // Check localStorage for user type and authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-      
-      if (session) {
-        const storedUserType = localStorage.getItem('userType');
-        if (storedUserType) {
-          setUserType(storedUserType);
-        }
-      }
-    };
+  const navigate = useNavigate();
 
-    checkAuth();
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      if (user) {
+        checkUserType(user.id);
+      }
+    });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
-      if (!session) {
-        setUserType(null);
-        localStorage.removeItem('userType');
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        checkUserType(session.user.id);
       } else {
-        const storedUserType = localStorage.getItem('userType');
-        if (storedUserType) {
-          setUserType(storedUserType);
-        }
+        setUserType(null);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('userType');
-      setUserType(null);
-      setIsAuthenticated(false);
-      toast.success("Logged out successfully");
-      navigate("/");
-    } catch (error) {
-      toast.error("Error logging out");
+  const checkUserType = async (userId: string) => {
+    // Check designer profile first
+    const { data: designerProfile } = await supabase
+      .from('designer_profiles')
+      .select('user_type')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (designerProfile) {
+      setUserType('designer');
+      return;
+    }
+
+    // Check customer profile
+    const { data: customerProfile } = await supabase
+      .from('profile_measurements')
+      .select('user_type')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (customerProfile) {
+      setUserType('customer');
     }
   };
 
-  const navItems = [
-    { name: "Discover", path: "/discover" },
-    { name: "Tailors", path: "/tailors" },
-    { name: "AI Stylist", path: "/ai-stylist" },
-    { name: "About Us", path: "/about" },
-  ];
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserType(null);
+    navigate("/");
+  };
+
+  const getUserInitials = (email: string) => {
+    return email.charAt(0).toUpperCase();
+  };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-md z-50 border-b border-border">
-      <div className="container flex items-center justify-between py-4">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-fashion-purple to-fashion-pink flex items-center justify-center text-white font-bold text-lg">
-            NT
-          </div>
-          {!isMobile && (
-            <span className="text-xl font-bold gradient-text">
-              Neural Threads
-            </span>
-          )}
-        </Link>
-
-        {isMobile ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {navItems.map((item) => (
-                <DropdownMenuItem key={item.name} asChild>
-                  <Link to={item.path}>{item.name}</Link>
-                </DropdownMenuItem>
-              ))}
-              
-              <DropdownMenuSeparator />
-              
-              {!isAuthenticated ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link to="/login" className="text-fashion-purple font-medium">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      <span>Log in</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/signup" className="text-fashion-purple font-medium">
-                      <span>Sign up</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span className="truncate">{userType === 'designer' ? 'Designer Profile' : 'Customer Profile'}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <div className="flex items-center gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className="text-foreground/80 hover:text-fashion-purple transition-colors"
-              >
-                {item.name}
+    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="flex-shrink-0 flex items-center">
+              <span className="text-2xl font-bold text-gray-900">Neural Threads</span>
+            </Link>
+            <div className="hidden md:ml-10 md:flex md:space-x-8">
+              <Link to="/discover" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                Discover
               </Link>
-            ))}
-            
-            {!isAuthenticated ? (
-              <div className="flex items-center gap-4">
+              <Link to="/ai-stylist" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                AI Stylist
+              </Link>
+              <Link to="/tailors" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                Tailors
+              </Link>
+              <Link to="/about" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                About
+              </Link>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {getUserInitials(user.email || "U")}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{user.email}</p>
+                      {userType && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {userType}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  {userType === 'designer' && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/designer-dashboard" className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center space-x-4">
                 <Button variant="ghost" asChild>
-                  <Link to="/login" className="flex gap-2 items-center">
-                    <LogIn className="h-4 w-4" />
-                    <span>Log in</span>
-                  </Link>
+                  <Link to="/login">Sign In</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/signup">Sign up</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" className="relative flex gap-2 items-center">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{userType === 'designer' ? 'Designer' : 'Customer'}</span>
-                </Button>
-                <Button variant="ghost" onClick={handleLogout} className="flex gap-2 items-center">
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Log out</span>
+                  <Link to="/signup">Sign Up</Link>
                 </Button>
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );
