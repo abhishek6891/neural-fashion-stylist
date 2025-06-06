@@ -29,78 +29,110 @@ export const useProfileForm = (
         return;
       }
 
-      // Determine the correct table based on user type
-      const tableName = userType === "designer" ? 'designer_profiles' : 'profile_measurements';
-      
-      // Check if profile already exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from(tableName)
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+      if (userType === "designer") {
+        // Handle designer profile
+        const profileData = {
+          user_id: userId,
+          user_type: 'designer',
+          height: data.height || null,
+          weight: data.weight || null,
+          age: data.age || null,
+          specialization: data.specialization || null,
+          experience: data.experience || null,
+          location: data.location || null,
+          updated_at: new Date().toISOString(),
+        };
 
-      if (checkError) {
-        console.error('Error checking existing profile:', checkError);
-        toast.error(`Failed to check existing profile: ${checkError.message}`);
-        return;
-      }
+        // Check if designer profile exists
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('designer_profiles')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      // Base profile data that's common to both types
-      const baseProfileData = {
-        user_id: userId,
-        user_type: userType,
-        height: data.height || null,
-        weight: data.weight || null,
-        age: data.age || null,
-        updated_at: new Date().toISOString(),
-      };
-      
-      let profileData: any = { ...baseProfileData };
-      
-      // Add type-specific fields
-      if (userType === "customer") {
-        Object.assign(profileData, {
+        if (checkError) {
+          console.error('Error checking existing designer profile:', checkError);
+          toast.error(`Failed to check existing profile: ${checkError.message}`);
+          return;
+        }
+
+        let result;
+        if (existingProfile) {
+          // Update existing designer profile
+          result = await supabase
+            .from('designer_profiles')
+            .update(profileData)
+            .eq('user_id', userId);
+        } else {
+          // Insert new designer profile
+          profileData.created_at = new Date().toISOString();
+          result = await supabase
+            .from('designer_profiles')
+            .insert(profileData);
+        }
+
+        if (result.error) {
+          console.error('Designer profile save error:', result.error);
+          toast.error(`Failed to save designer profile: ${result.error.message}`);
+          return;
+        }
+
+        console.log('Designer profile saved successfully!');
+        toast.success(`Designer profile ${existingProfile ? 'updated' : 'created'} successfully! Welcome to Neural Threads!`);
+        
+      } else if (userType === "customer") {
+        // Handle customer profile
+        const profileData = {
+          user_id: userId,
+          user_type: 'customer',
+          height: data.height || null,
+          weight: data.weight || null,
+          age: data.age || null,
           chest: data.chest || null,
           waist: data.waist || null,
           hip: data.hip || null,
           inseam: data.inseam || null,
           shoe_size: data.shoeSize || null,
-        });
-      } else if (userType === "designer") {
-        Object.assign(profileData, {
-          specialization: data.specialization || null,
-          experience: data.experience || null,
-          location: data.location || null,
-        });
+          updated_at: new Date().toISOString(),
+        };
+
+        // Check if customer profile exists
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('profile_measurements')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking existing customer profile:', checkError);
+          toast.error(`Failed to check existing profile: ${checkError.message}`);
+          return;
+        }
+
+        let result;
+        if (existingProfile) {
+          // Update existing customer profile
+          result = await supabase
+            .from('profile_measurements')
+            .update(profileData)
+            .eq('user_id', userId);
+        } else {
+          // Insert new customer profile
+          profileData.created_at = new Date().toISOString();
+          result = await supabase
+            .from('profile_measurements')
+            .insert(profileData);
+        }
+
+        if (result.error) {
+          console.error('Customer profile save error:', result.error);
+          toast.error(`Failed to save customer profile: ${result.error.message}`);
+          return;
+        }
+
+        console.log('Customer profile saved successfully!');
+        toast.success(`Customer profile ${existingProfile ? 'updated' : 'created'} successfully! Welcome to Neural Threads!`);
       }
-
-      console.log("Saving profile data to table:", tableName, profileData);
-
-      let result;
-      if (existingProfile) {
-        // Update existing profile
-        result = await supabase
-          .from(tableName)
-          .update(profileData)
-          .eq('user_id', userId);
-      } else {
-        // Insert new profile
-        profileData.created_at = new Date().toISOString();
-        result = await supabase
-          .from(tableName)
-          .insert(profileData);
-      }
-
-      const { error } = result;
-
-      if (error) {
-        console.error('Database error:', error);
-        toast.error(`Failed to save ${userType} profile: ${error.message}`);
-        return;
-      }
-
-      console.log(`${userType} profile saved successfully!`);
-      toast.success(`${userType === 'designer' ? 'Designer' : 'Customer'} profile ${existingProfile ? 'updated' : 'created'} successfully! Welcome to Neural Threads!`);
       
       // Store user type in localStorage
       localStorage.setItem('userType', userType);
