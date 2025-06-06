@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,11 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Navbar = () => {
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Get initial user
@@ -86,16 +87,16 @@ const Navbar = () => {
             </Link>
             <div className="hidden md:ml-10 md:flex md:space-x-8">
               <Link to="/discover" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                Discover
+                {t('discover')}
               </Link>
               <Link to="/ai-stylist" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                AI Stylist
+                {t('aiStylist')}
               </Link>
               <Link to="/tailors" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                Tailors
+                {t('tailors')}
               </Link>
               <Link to="/about" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                About
+                {t('about')}
               </Link>
             </div>
           </div>
@@ -144,10 +145,10 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center space-x-4">
                 <Button variant="ghost" asChild>
-                  <Link to="/login">Sign In</Link>
+                  <Link to="/login">{t('login')}</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/signup">Sign Up</Link>
+                  <Link to="/signup">{t('signup')}</Link>
                 </Button>
               </div>
             )}
