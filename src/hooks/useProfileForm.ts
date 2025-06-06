@@ -31,9 +31,9 @@ export const useProfileForm = (
 
       if (userType === "designer") {
         // Handle designer profile
-        const profileData = {
+        const baseProfileData = {
           user_id: userId,
-          user_type: 'designer',
+          user_type: 'designer' as const,
           height: data.height || null,
           weight: data.weight || null,
           age: data.age || null,
@@ -61,14 +61,17 @@ export const useProfileForm = (
           // Update existing designer profile
           result = await supabase
             .from('designer_profiles')
-            .update(profileData)
+            .update(baseProfileData)
             .eq('user_id', userId);
         } else {
           // Insert new designer profile
-          profileData.created_at = new Date().toISOString();
+          const insertData = {
+            ...baseProfileData,
+            created_at: new Date().toISOString(),
+          };
           result = await supabase
             .from('designer_profiles')
-            .insert(profileData);
+            .insert(insertData);
         }
 
         if (result.error) {
@@ -82,9 +85,9 @@ export const useProfileForm = (
         
       } else if (userType === "customer") {
         // Handle customer profile
-        const profileData = {
+        const baseProfileData = {
           user_id: userId,
-          user_type: 'customer',
+          user_type: 'customer' as const,
           height: data.height || null,
           weight: data.weight || null,
           age: data.age || null,
@@ -114,14 +117,17 @@ export const useProfileForm = (
           // Update existing customer profile
           result = await supabase
             .from('profile_measurements')
-            .update(profileData)
+            .update(baseProfileData)
             .eq('user_id', userId);
         } else {
           // Insert new customer profile
-          profileData.created_at = new Date().toISOString();
+          const insertData = {
+            ...baseProfileData,
+            created_at: new Date().toISOString(),
+          };
           result = await supabase
             .from('profile_measurements')
-            .insert(profileData);
+            .insert(insertData);
         }
 
         if (result.error) {
