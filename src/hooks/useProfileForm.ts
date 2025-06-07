@@ -29,10 +29,13 @@ export const useProfileForm = (
         return;
       }
 
+      // Use the authenticated user's ID instead of the passed userId
+      const authenticatedUserId = user.id;
+
       if (userType === "designer") {
         // Handle designer profile
-        const baseProfileData = {
-          user_id: userId,
+        const profileData = {
+          user_id: authenticatedUserId,
           user_type: 'designer' as const,
           height: data.height || null,
           weight: data.weight || null,
@@ -47,7 +50,7 @@ export const useProfileForm = (
         const { data: existingProfile, error: checkError } = await supabase
           .from('designer_profiles')
           .select('id')
-          .eq('user_id', userId)
+          .eq('user_id', authenticatedUserId)
           .maybeSingle();
 
         if (checkError) {
@@ -61,12 +64,12 @@ export const useProfileForm = (
           // Update existing designer profile
           result = await supabase
             .from('designer_profiles')
-            .update(baseProfileData)
-            .eq('user_id', userId);
+            .update(profileData)
+            .eq('user_id', authenticatedUserId);
         } else {
           // Insert new designer profile
           const insertData = {
-            ...baseProfileData,
+            ...profileData,
             created_at: new Date().toISOString(),
           };
           result = await supabase
@@ -85,8 +88,8 @@ export const useProfileForm = (
         
       } else if (userType === "customer") {
         // Handle customer profile
-        const baseProfileData = {
-          user_id: userId,
+        const profileData = {
+          user_id: authenticatedUserId,
           user_type: 'customer' as const,
           height: data.height || null,
           weight: data.weight || null,
@@ -103,7 +106,7 @@ export const useProfileForm = (
         const { data: existingProfile, error: checkError } = await supabase
           .from('profile_measurements')
           .select('id')
-          .eq('user_id', userId)
+          .eq('user_id', authenticatedUserId)
           .maybeSingle();
 
         if (checkError) {
@@ -117,12 +120,12 @@ export const useProfileForm = (
           // Update existing customer profile
           result = await supabase
             .from('profile_measurements')
-            .update(baseProfileData)
-            .eq('user_id', userId);
+            .update(profileData)
+            .eq('user_id', authenticatedUserId);
         } else {
           // Insert new customer profile
           const insertData = {
-            ...baseProfileData,
+            ...profileData,
             created_at: new Date().toISOString(),
           };
           result = await supabase

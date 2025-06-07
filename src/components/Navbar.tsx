@@ -1,159 +1,177 @@
+
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, LogOut, Settings } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<string | null>(null);
   const navigate = useNavigate();
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
       if (user) {
-        checkUserType(user.id);
+        // Get user type from localStorage
+        const storedUserType = localStorage.getItem('userType');
+        setUserType(storedUserType);
       }
-    });
+    };
+
+    getCurrentUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkUserType(session.user.id);
-      } else {
-        setUserType(null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const storedUserType = localStorage.getItem('userType');
+          setUserType(storedUserType);
+        } else {
+          setUserType(null);
+        }
       }
-    });
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkUserType = async (userId: string) => {
-    // Check designer profile first
-    const { data: designerProfile } = await supabase
-      .from('designer_profiles')
-      .select('user_type')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (designerProfile) {
-      setUserType('designer');
-      return;
-    }
-
-    // Check customer profile
-    const { data: customerProfile } = await supabase
-      .from('profile_measurements')
-      .select('user_type')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (customerProfile) {
-      setUserType('customer');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('userType');
+      toast.success("Logged out successfully");
+      navigate("/");
+    } catch (error) {
+      toast.error("Error logging out");
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserType(null);
-    navigate("/");
-  };
-
-  const getUserInitials = (email: string) => {
-    return email.charAt(0).toUpperCase();
-  };
+  const navItems = [
+    { href: "/discover", label: t("discover") },
+    { href: "/ai-stylist", label: t("aiStylist") },
+    { href: "/tailors", label: t("tailors") },
+    { href: "/about", label: t("about") },
+  ];
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-gray-900">Neural Threads</span>
-            </Link>
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
-              <Link to="/discover" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                {t('discover')}
-              </Link>
-              <Link to="/ai-stylist" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                {t('aiStylist')}
-              </Link>
-              <Link to="/tailors" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                {t('tailors')}
-              </Link>
-              <Link to="/about" className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">
-                {t('about')}
-              </Link>
+    <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-md border-b z-40">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-fashion-purple to-fashion-pink rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">NT</span>
             </div>
+            <span className="font-bold text-xl gradient-text">Neural Threads</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="text-foreground hover:text-primary transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
-          
-          <div className="flex items-center space-x-4">
+
+          {/* Desktop Auth & Notifications */}
+          <div className="hidden md:flex items-center space-x-4">
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {getUserInitials(user.email || "U")}
-                      </AvatarFallback>
-                    </Avatar>
+              <div className="flex items-center space-x-3">
+                {/* Show notification bell for designers */}
+                {userType === 'designer' && <NotificationBell />}
+                
+                {userType === 'designer' && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/designer-dashboard">Dashboard</Link>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{user.email}</p>
-                      {userType && (
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {userType}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  {userType === 'designer' && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link to="/designer-dashboard" className="cursor-pointer">
-                          <Settings className="mr-2 h-4 w-4" />
-                          Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" asChild>
-                  <Link to="/login">{t('login')}</Link>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
-                <Button asChild>
-                  <Link to="/signup">{t('signup')}</Link>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">{t("login")}</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/signup">{t("signup")}</Link>
                 </Button>
               </div>
             )}
           </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <div className="md:hidden py-4 border-t">
+            <div className="flex flex-col space-y-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="text-foreground hover:text-primary transition-colors px-2 py-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              
+              {user ? (
+                <div className="flex flex-col space-y-2 pt-3 border-t">
+                  {userType === 'designer' && (
+                    <Button asChild variant="outline" size="sm" className="justify-start">
+                      <Link to="/designer-dashboard" onClick={() => setIsOpen(false)}>
+                        Dashboard
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="justify-start">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col space-y-2 pt-3 border-t">
+                  <Button asChild variant="ghost" size="sm" className="justify-start">
+                    <Link to="/login" onClick={() => setIsOpen(false)}>{t("login")}</Link>
+                  </Button>
+                  <Button asChild size="sm" className="justify-start">
+                    <Link to="/signup" onClick={() => setIsOpen(false)}>{t("signup")}</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
