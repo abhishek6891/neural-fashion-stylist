@@ -17,9 +17,17 @@ serve(async (req) => {
 
   try {
     const { message, images } = await req.json();
+    console.log('Received request:', { message, imageCount: images?.length || 0 });
 
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.error('OpenAI API key not configured');
+      return new Response(JSON.stringify({ 
+        error: 'OpenAI API key not configured',
+        response: "I'm having trouble connecting to my AI brain right now. Here's some general styling advice: Focus on fit first - well-fitted clothes always look better regardless of style. Consider your color palette and stick to 2-3 colors max per outfit."
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Add retry logic for rate limiting
@@ -79,6 +87,7 @@ serve(async (req) => {
           });
         }
 
+        console.log('Calling OpenAI API...');
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -93,11 +102,14 @@ serve(async (req) => {
           }),
         });
 
+        console.log('OpenAI response status:', response.status);
+
         if (response.status === 429) {
           // Rate limited, wait and retry
           retryCount++;
           if (retryCount < maxRetries) {
             const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(`Rate limited, waiting ${waitTime}ms before retry ${retryCount}`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;
           }
@@ -111,6 +123,7 @@ serve(async (req) => {
         }
 
         const data = await response.json();
+        console.log('OpenAI response received successfully');
         
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
           console.error('Invalid OpenAI response structure:', data);
@@ -132,6 +145,7 @@ serve(async (req) => {
         }
         retryCount++;
         const waitTime = Math.pow(2, retryCount) * 1000;
+        console.log(`Retrying in ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
