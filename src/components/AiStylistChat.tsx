@@ -1,10 +1,9 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Sparkles, RefreshCw } from "lucide-react";
+import { Send, Sparkles, RefreshCw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -103,7 +102,6 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
     } catch (error) {
       console.error('Error getting AI response:', error);
       
-      // Always provide a helpful fallback response
       const fallbackMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: getFallbackResponse(messageToSend),
@@ -111,7 +109,6 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
       };
       setMessages(prev => [...prev, fallbackMessage]);
       
-      // Only show error toast for unexpected errors
       if (!error.message?.includes('Rate limit') && !error.message?.includes('429')) {
         toast.error("I'm having a moment, but I provided some general advice above. Please try again!");
       }
@@ -137,9 +134,9 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl mx-4 h-[600px] flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-3xl h-[80vh] max-h-[600px] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-500" />
             AI Fashion Stylist
@@ -155,13 +152,13 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
               Retry
             </Button>
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-              ×
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col">
-          <ScrollArea className="flex-1 pr-4">
+        <CardContent className="flex-1 flex flex-col p-4 min-h-0">
+          <ScrollArea className="flex-1 pr-2 mb-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -169,13 +166,13 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
                   className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                    className={`max-w-[85%] px-3 py-2 rounded-lg ${
                       message.isUser
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     
                     {message.images && message.images.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 mt-3">
@@ -195,7 +192,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
               
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted px-4 py-2 rounded-lg">
+                  <div className="bg-muted px-3 py-2 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="animate-spin h-4 w-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
                       <span className="text-sm">AI is thinking...</span>
@@ -207,13 +204,14 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
             </div>
           </ScrollArea>
 
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 pt-2 border-t">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask for style suggestions..."
               disabled={isLoading}
+              className="flex-1"
             />
             <Button onClick={() => sendMessage()} disabled={isLoading || !input.trim()}>
               <Send className="h-4 w-4" />
