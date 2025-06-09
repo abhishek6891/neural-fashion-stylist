@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message } = await req.json();
+    const { message, images } = await req.json();
 
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
@@ -28,6 +28,57 @@ serve(async (req) => {
     
     while (retryCount < maxRetries) {
       try {
+        // Prepare messages for OpenAI
+        const messages = [
+          {
+            role: 'system',
+            content: `You are an expert AI fashion stylist. Your role is to provide personalized fashion advice, style recommendations, and outfit analysis. You should:
+            
+            1. Analyze clothing items, colors, and style combinations
+            2. Suggest specific clothing items, colors, and combinations
+            3. Provide tips for different occasions (casual, formal, business, etc.)
+            4. Recommend fashion brands and shopping suggestions
+            5. Give advice on color coordination and styling techniques
+            6. Help with wardrobe organization and capsule wardrobe creation
+            7. Suggest accessories and how to incorporate trends
+            8. When analyzing outfit photos, comment on fit, color harmony, styling, and suggest improvements
+            
+            Always be encouraging, specific, and helpful. If users upload photos, provide detailed analysis and constructive feedback. Be concise but informative.`
+          }
+        ];
+
+        // If images are provided, create a message with both text and images
+        if (images && images.length > 0) {
+          const content = [
+            {
+              type: 'text',
+              text: message || 'Please analyze these outfit photos and provide styling advice.'
+            }
+          ];
+          
+          // Add each image to the content
+          images.forEach((image: string) => {
+            content.push({
+              type: 'image_url',
+              image_url: {
+                url: image,
+                detail: 'high'
+              }
+            });
+          });
+
+          messages.push({
+            role: 'user',
+            content: content
+          });
+        } else {
+          // Text-only message
+          messages.push({
+            role: 'user',
+            content: message
+          });
+        }
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -35,27 +86,8 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an expert AI fashion stylist. Your role is to provide personalized fashion advice, style recommendations, and outfit suggestions. You should:
-                
-                1. Analyze the user's style preferences, body type, and lifestyle
-                2. Suggest specific clothing items, colors, and combinations
-                3. Provide tips for different occasions (casual, formal, business, etc.)
-                4. Recommend fashion brands and shopping suggestions
-                5. Give advice on color coordination and styling techniques
-                6. Help with wardrobe organization and capsule wardrobe creation
-                7. Suggest accessories and how to incorporate trends
-                
-                Always be encouraging, specific, and helpful. If users ask about specific items, provide detailed styling advice. Be concise but informative.`
-              },
-              {
-                role: 'user',
-                content: message
-              }
-            ],
+            model: 'gpt-4o',
+            messages: messages,
             temperature: 0.7,
             max_tokens: 800,
           }),
@@ -73,10 +105,18 @@ serve(async (req) => {
         }
 
         if (!response.ok) {
-          throw new Error(`OpenAI API error: ${response.status}`);
+          const errorText = await response.text();
+          console.error('OpenAI API error response:', errorText);
+          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+          console.error('Invalid OpenAI response structure:', data);
+          throw new Error('Invalid response from OpenAI API');
+        }
+
         const stylistResponse = data.choices[0].message.content;
 
         return new Response(JSON.stringify({ 
@@ -86,6 +126,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (error) {
+        console.error('Error in AI stylist retry loop:', error);
         if (retryCount === maxRetries - 1) {
           throw error;
         }
@@ -107,7 +148,10 @@ serve(async (req) => {
       });
     }
     
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      response: "I apologize, but I'm having technical difficulties right now. Here's some general styling advice: Focus on fit first, then color coordination, and don't forget accessories to complete your look!"
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -115,7 +159,7 @@ serve(async (req) => {
 });
 
 function getStyleImages(message: string): string[] {
-  const lowerMessage = message.toLowerCase();
+  const lowerMessage = (message || '').toLowerCase();
   
   // Return relevant style images based on the message content
   if (lowerMessage.includes('formal') || lowerMessage.includes('business')) {

@@ -4,4 +4,5 @@ export interface Message {
   content: string;
   isUser: boolean;
   images?: string[];
+  uploadedImages?: string[];
 }

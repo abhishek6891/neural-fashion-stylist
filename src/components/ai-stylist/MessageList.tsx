@@ -36,6 +36,19 @@ const MessageList = ({ messages, isLoading }: MessageListProps) => {
             >
               <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
               
+              {message.uploadedImages && message.uploadedImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  {message.uploadedImages.map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Uploaded outfit ${index + 1}`}
+                      className="rounded-md w-full h-32 object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+              
               {message.images && message.images.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {message.images.map((image, index) => (

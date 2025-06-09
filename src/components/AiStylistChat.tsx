@@ -18,34 +18,42 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Hello! I'm your AI Fashion Stylist. I can help you find the perfect outfit for any occasion, suggest color combinations, and provide personalized style advice. What fashion help do you need today?",
+      content: "Hello! I'm your AI Fashion Stylist. I can help you find the perfect outfit for any occasion, suggest color combinations, and provide personalized style advice. You can also upload photos of outfits for me to analyze and give feedback! What fashion help do you need today?",
       isUser: false
     }
   ]);
   const [input, setInput] = useState("");
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async (retryMessage?: string) => {
+  const sendMessage = async (retryMessage?: string, retryImages?: string[]) => {
     const messageToSend = retryMessage || input;
-    if (!messageToSend.trim()) return;
+    const imagesToSend = retryImages || selectedImages;
+    
+    if (!messageToSend.trim() && imagesToSend.length === 0) return;
 
     if (!retryMessage) {
       const userMessage: Message = {
         id: Date.now().toString(),
-        content: messageToSend,
-        isUser: true
+        content: messageToSend || "Please analyze these outfit photos",
+        isUser: true,
+        uploadedImages: imagesToSend
       };
       setMessages(prev => [...prev, userMessage]);
       setInput("");
+      setSelectedImages([]);
     }
     
     setIsLoading(true);
 
     try {
-      console.log("Sending message to AI stylist:", messageToSend);
+      console.log("Sending message to AI stylist:", { message: messageToSend, images: imagesToSend });
       
       const { data, error } = await supabase.functions.invoke('ai-stylist', {
-        body: { message: messageToSend }
+        body: { 
+          message: messageToSend,
+          images: imagesToSend
+        }
       });
 
       if (error) {
@@ -57,9 +65,9 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response || getFallbackResponse(messageToSend),
+        content: data?.response || getFallbackResponse(messageToSend),
         isUser: false,
-        images: data.images || []
+        images: data?.images || []
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -73,9 +81,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
       };
       setMessages(prev => [...prev, fallbackMessage]);
       
-      if (!error.message?.includes('Rate limit') && !error.message?.includes('429')) {
-        toast.error("I'm having a moment, but I provided some general advice above. Please try again!");
-      }
+      toast.error("I'm having a moment, but I provided some general advice above. Please try again!");
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +90,7 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   const retryLastMessage = () => {
     const lastUserMessage = [...messages].reverse().find(msg => msg.isUser);
     if (lastUserMessage) {
-      sendMessage(lastUserMessage.content);
+      sendMessage(lastUserMessage.content, lastUserMessage.uploadedImages);
     }
   };
 
@@ -99,14 +105,14 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-3xl h-[80vh] max-h-[600px] flex flex-col">
+      <Card className="w-full max-w-4xl h-[85vh] flex flex-col">
         <ChatHeader 
           onRetry={retryLastMessage}
           onClose={() => onOpenChange(false)}
           isLoading={isLoading}
         />
         
-        <CardContent className="flex-1 flex flex-col p-4 min-h-0">
+        <CardContent className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
           <MessageList messages={messages} isLoading={isLoading} />
           <ChatInput 
             input={input}
@@ -114,6 +120,8 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
             onSend={() => sendMessage()}
             onKeyPress={handleKeyPress}
             isLoading={isLoading}
+            selectedImages={selectedImages}
+            onImagesSelected={setSelectedImages}
           />
         </CardContent>
       </Card>
