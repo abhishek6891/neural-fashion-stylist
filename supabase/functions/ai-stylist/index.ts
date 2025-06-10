@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,10 +19,10 @@ serve(async (req) => {
     const { message, images } = await req.json();
     console.log('Received request:', { message, imageCount: images?.length || 0 });
 
-    if (!openAIApiKey) {
-      console.error('OpenAI API key not configured');
+    if (!groqApiKey) {
+      console.error('Groq API key not configured');
       return new Response(JSON.stringify({ 
-        error: 'OpenAI API key not configured',
+        error: 'Groq API key not configured',
         response: "I'm having trouble connecting to my AI brain right now. Here's some general styling advice: Focus on fit first - well-fitted clothes always look better regardless of style. Consider your color palette and stick to 2-3 colors max per outfit."
       }), {
         status: 500,
@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    // Prepare messages for OpenAI
+    // Prepare messages for Groq
     const messages = [
       {
         role: 'system',
@@ -47,33 +47,20 @@ serve(async (req) => {
         9. Consider factors like skin tone, body shape, lifestyle, and personal preferences
         10. Provide styling alternatives and multiple outfit options
 
-        Always be encouraging, highly specific, and provide actionable advice. Give detailed explanations for your recommendations. If users upload photos, provide comprehensive analysis with constructive feedback and specific suggestions for improvement or styling alternatives.`
+        Always be encouraging, highly specific, and provide actionable advice. Give detailed explanations for your recommendations. If users upload photos, provide comprehensive analysis with constructive feedback and specific suggestions for improvement or styling alternatives.
+
+        Keep responses conversational, detailed, and practical. Focus on helping users look and feel their best.`
       }
     ];
 
-    // If images are provided, create a message with both text and images
+    // Handle text and images
     if (images && images.length > 0) {
-      const content = [
-        {
-          type: 'text',
-          text: message || 'Please analyze these outfit photos and provide detailed styling advice, including specific suggestions for improvement, color coordination, fit assessment, and styling alternatives.'
-        }
-      ];
+      // For image analysis, create a detailed prompt
+      const imagePrompt = message || 'Please analyze these outfit photos and provide detailed styling advice, including specific suggestions for improvement, color coordination, fit assessment, and styling alternatives.';
       
-      // Add each image to the content
-      images.forEach((image: string) => {
-        content.push({
-          type: 'image_url',
-          image_url: {
-            url: image,
-            detail: 'high'
-          }
-        });
-      });
-
       messages.push({
         role: 'user',
-        content: content
+        content: `${imagePrompt}\n\nI've uploaded ${images.length} image(s) for you to analyze. Please provide detailed fashion advice based on what you can see in the images.`
       });
     } else {
       // Text-only message
@@ -83,27 +70,28 @@ serve(async (req) => {
       });
     }
 
-    console.log('Calling OpenAI API with GPT-4.1...');
+    console.log('Calling Groq API with Llama model...');
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'llama-3.1-70b-versatile', // High-quality model for detailed responses
         messages: messages,
         temperature: 0.7,
-        max_tokens: 1500,
+        max_tokens: 2000,
+        top_p: 0.9,
       }),
     });
 
-    console.log('OpenAI response status:', response.status);
+    console.log('Groq response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
+      console.error('Groq API error:', response.status, errorText);
       
       // Handle specific error cases
       if (response.status === 429) {
@@ -115,15 +103,15 @@ serve(async (req) => {
         });
       }
       
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response received successfully');
+    console.log('Groq response received successfully');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid OpenAI response structure:', data);
-      throw new Error('Invalid response from OpenAI API');
+      console.error('Invalid Groq response structure:', data);
+      throw new Error('Invalid response from Groq API');
     }
 
     const stylistResponse = data.choices[0].message.content;
