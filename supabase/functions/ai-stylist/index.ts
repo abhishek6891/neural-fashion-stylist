@@ -30,141 +30,117 @@ serve(async (req) => {
       });
     }
 
-    // Add retry logic for rate limiting
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    while (retryCount < maxRetries) {
-      try {
-        // Prepare messages for OpenAI
-        const messages = [
-          {
-            role: 'system',
-            content: `You are an expert AI fashion stylist. Your role is to provide personalized fashion advice, style recommendations, and outfit analysis. You should:
-            
-            1. Analyze clothing items, colors, and style combinations
-            2. Suggest specific clothing items, colors, and combinations
-            3. Provide tips for different occasions (casual, formal, business, etc.)
-            4. Recommend fashion brands and shopping suggestions
-            5. Give advice on color coordination and styling techniques
-            6. Help with wardrobe organization and capsule wardrobe creation
-            7. Suggest accessories and how to incorporate trends
-            8. When analyzing outfit photos, comment on fit, color harmony, styling, and suggest improvements
-            
-            Always be encouraging, specific, and helpful. If users upload photos, provide detailed analysis and constructive feedback. Be concise but informative.`
-          }
-        ];
-
-        // If images are provided, create a message with both text and images
-        if (images && images.length > 0) {
-          const content = [
-            {
-              type: 'text',
-              text: message || 'Please analyze these outfit photos and provide styling advice.'
-            }
-          ];
-          
-          // Add each image to the content
-          images.forEach((image: string) => {
-            content.push({
-              type: 'image_url',
-              image_url: {
-                url: image,
-                detail: 'high'
-              }
-            });
-          });
-
-          messages.push({
-            role: 'user',
-            content: content
-          });
-        } else {
-          // Text-only message
-          messages.push({
-            role: 'user',
-            content: message
-          });
-        }
-
-        console.log('Calling OpenAI API...');
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: 800,
-          }),
-        });
-
-        console.log('OpenAI response status:', response.status);
-
-        if (response.status === 429) {
-          // Rate limited, wait and retry
-          retryCount++;
-          if (retryCount < maxRetries) {
-            const waitTime = Math.pow(2, retryCount) * 1000; // Exponential backoff
-            console.log(`Rate limited, waiting ${waitTime}ms before retry ${retryCount}`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            continue;
-          }
-          throw new Error('Rate limit exceeded. Please try again in a few moments.');
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('OpenAI API error response:', errorText);
-          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        console.log('OpenAI response received successfully');
+    // Prepare messages for OpenAI
+    const messages = [
+      {
+        role: 'system',
+        content: `You are an expert AI fashion stylist with years of experience in personal styling, fashion trends, and wardrobe consulting. Your role is to provide detailed, personalized fashion advice and style recommendations. You should:
         
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-          console.error('Invalid OpenAI response structure:', data);
-          throw new Error('Invalid response from OpenAI API');
+        1. Analyze clothing items, colors, fits, and style combinations in detail
+        2. Suggest specific clothing items, brands, colors, and styling techniques
+        3. Provide comprehensive tips for different occasions (casual, formal, business, date nights, etc.)
+        4. Recommend fashion brands and detailed shopping suggestions with price ranges
+        5. Give expert advice on color coordination, seasonal styling, and body type considerations
+        6. Help with complete wardrobe organization and capsule wardrobe creation
+        7. Suggest accessories, shoes, and how to incorporate current trends tastefully
+        8. When analyzing outfit photos, provide detailed feedback on fit, color harmony, styling choices, and specific improvement suggestions
+        9. Consider factors like skin tone, body shape, lifestyle, and personal preferences
+        10. Provide styling alternatives and multiple outfit options
+
+        Always be encouraging, highly specific, and provide actionable advice. Give detailed explanations for your recommendations. If users upload photos, provide comprehensive analysis with constructive feedback and specific suggestions for improvement or styling alternatives.`
+      }
+    ];
+
+    // If images are provided, create a message with both text and images
+    if (images && images.length > 0) {
+      const content = [
+        {
+          type: 'text',
+          text: message || 'Please analyze these outfit photos and provide detailed styling advice, including specific suggestions for improvement, color coordination, fit assessment, and styling alternatives.'
         }
+      ];
+      
+      // Add each image to the content
+      images.forEach((image: string) => {
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: image,
+            detail: 'high'
+          }
+        });
+      });
 
-        const stylistResponse = data.choices[0].message.content;
+      messages.push({
+        role: 'user',
+        content: content
+      });
+    } else {
+      // Text-only message
+      messages.push({
+        role: 'user',
+        content: message
+      });
+    }
 
+    console.log('Calling OpenAI API with GPT-4.1...');
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-2025-04-14',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1500,
+      }),
+    });
+
+    console.log('OpenAI response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      
+      // Handle specific error cases
+      if (response.status === 429) {
         return new Response(JSON.stringify({ 
-          response: stylistResponse,
-          images: getStyleImages(message) 
+          response: "I'm currently experiencing high demand. Here's some quick styling advice: For a polished look, focus on well-fitted basics in neutral colors. Layer strategically and add one statement piece. What specific style question can I help you with?",
+          images: getStyleImages(message)
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } catch (error) {
-        console.error('Error in AI stylist retry loop:', error);
-        if (retryCount === maxRetries - 1) {
-          throw error;
-        }
-        retryCount++;
-        const waitTime = Math.pow(2, retryCount) * 1000;
-        console.log(`Retrying in ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
+      
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
+
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid OpenAI response structure:', data);
+      throw new Error('Invalid response from OpenAI API');
+    }
+
+    const stylistResponse = data.choices[0].message.content;
+
+    return new Response(JSON.stringify({ 
+      response: stylistResponse,
+      images: getStyleImages(message || '') 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
     console.error('Error in ai-stylist function:', error);
     
-    // Provide a fallback response for rate limiting
-    if (error.message.includes('Rate limit') || error.message.includes('429')) {
-      return new Response(JSON.stringify({ 
-        response: "I'm currently experiencing high demand. Here are some general style tips: Consider your body type when choosing clothes, stick to a cohesive color palette, and invest in quality basics like a well-fitted blazer, good jeans, and comfortable shoes. What specific style question can I help you with?",
-        images: getStyleImages("general styling tips")
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
     return new Response(JSON.stringify({ 
       error: error.message,
-      response: "I apologize, but I'm having technical difficulties right now. Here's some general styling advice: Focus on fit first, then color coordination, and don't forget accessories to complete your look!"
+      response: "I apologize for the technical difficulty. Here's some general styling advice: Start with well-fitted basics in colors that complement your skin tone. Build your wardrobe around versatile pieces that can be mixed and matched. What specific styling help do you need?"
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -176,24 +152,31 @@ function getStyleImages(message: string): string[] {
   const lowerMessage = (message || '').toLowerCase();
   
   // Return relevant style images based on the message content
-  if (lowerMessage.includes('formal') || lowerMessage.includes('business')) {
+  if (lowerMessage.includes('formal') || lowerMessage.includes('business') || lowerMessage.includes('professional')) {
     return [
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop",
       "https://images.unsplash.com/photo-1566479179817-0da9d6d6f1b7?w=300&h=400&fit=crop"
     ];
   }
   
-  if (lowerMessage.includes('casual') || lowerMessage.includes('everyday')) {
+  if (lowerMessage.includes('casual') || lowerMessage.includes('everyday') || lowerMessage.includes('weekend')) {
     return [
       "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&h=400&fit=crop",
       "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=300&h=400&fit=crop"
     ];
   }
   
-  if (lowerMessage.includes('wedding') || lowerMessage.includes('special occasion')) {
+  if (lowerMessage.includes('wedding') || lowerMessage.includes('special occasion') || lowerMessage.includes('party')) {
     return [
       "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=300&h=400&fit=crop",
       "https://images.unsplash.com/photo-1583391733956-6c78276477e1?w=300&h=400&fit=crop"
+    ];
+  }
+
+  if (lowerMessage.includes('beach') || lowerMessage.includes('summer') || lowerMessage.includes('vacation')) {
+    return [
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=300&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1544957992-20514f595d6f?w=300&h=400&fit=crop"
     ];
   }
   
