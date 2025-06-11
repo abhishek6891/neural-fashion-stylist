@@ -25,7 +25,7 @@ serve(async (req) => {
         error: 'Groq API key not configured',
         response: "I'm having trouble connecting to my AI brain right now. Here's some general styling advice: Focus on fit first - well-fitted clothes always look better regardless of style. Consider your color palette and stick to 2-3 colors max per outfit."
       }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -79,7 +79,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile', // High-quality model for detailed responses
+        model: 'llama-3.1-70b-versatile',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -130,7 +130,7 @@ serve(async (req) => {
       error: error.message,
       response: "I apologize for the technical difficulty. Here's some general styling advice: Start with well-fitted basics in colors that complement your skin tone. Build your wardrobe around versatile pieces that can be mixed and matched. What specific styling help do you need?"
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

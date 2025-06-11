@@ -1,13 +1,13 @@
 
 import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Message } from "./ai-stylist/types";
-import { getFallbackResponse } from "./ai-stylist/fallbackResponses";
+import { useToast } from "@/components/ui/use-toast";
 import ChatHeader from "./ai-stylist/ChatHeader";
 import MessageList from "./ai-stylist/MessageList";
 import ChatInput from "./ai-stylist/ChatInput";
+import { Message } from "./ai-stylist/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AiStylistChatProps {
   isOpen: boolean;
@@ -18,114 +18,120 @@ const AiStylistChat = ({ isOpen, onOpenChange }: AiStylistChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Hello! I'm your AI Fashion Stylist. I can help you find the perfect outfit for any occasion, suggest color combinations, and provide personalized style advice. You can also upload photos of outfits for me to analyze and give feedback! What fashion help do you need today?",
-      isUser: false
-    }
+      content: "Hello! I'm your AI fashion stylist. I can help you with outfit suggestions, color coordination, styling tips, and analyze your wardrobe photos. What would you like to know about fashion today?",
+      isUser: false,
+      timestamp: new Date(),
+    },
   ]);
   const [input, setInput] = useState("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const sendMessage = async (retryMessage?: string, retryImages?: string[]) => {
-    const messageToSend = retryMessage || input;
-    const imagesToSend = retryImages || selectedImages;
-    
-    if (!messageToSend.trim() && imagesToSend.length === 0) return;
+  const handleSend = async () => {
+    if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
 
-    if (!retryMessage) {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        content: messageToSend || "Please analyze these outfit photos",
-        isUser: true,
-        uploadedImages: imagesToSend
-      };
-      setMessages(prev => [...prev, userMessage]);
-      setInput("");
-      setSelectedImages([]);
-    }
-    
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      isUser: true,
+      timestamp: new Date(),
+      uploadedImages: selectedImages.length > 0 ? [...selectedImages] : undefined,
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
     setIsLoading(true);
 
     try {
-      console.log("Sending message to AI stylist:", { message: messageToSend, images: imagesToSend });
+      console.log('Sending request to AI stylist...');
       
       const { data, error } = await supabase.functions.invoke('ai-stylist', {
-        body: { 
-          message: messageToSend,
-          images: imagesToSend
+        body: {
+          message: input,
+          images: selectedImages
         }
       });
 
-      if (error) {
-        console.error('AI stylist error:', error);
-        throw error;
-      }
+      console.log('AI stylist response:', data, error);
 
-      console.log("AI stylist response:", data);
+      if (error) {
+        throw new Error(error.message || 'Failed to get AI response');
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data?.response || getFallbackResponse(messageToSend),
+        content: data.response || "I apologize, but I'm having trouble generating a response right now. Please try again.",
         isUser: false,
-        images: data?.images || []
+        timestamp: new Date(),
+        images: data.images || [],
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      setSelectedImages([]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('Error calling AI stylist:', error);
       
-      const fallbackMessage: Message = {
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: getFallbackResponse(messageToSend),
-        isUser: false
+        content: "I'm sorry, I'm experiencing some technical difficulties. Please try again in a moment. In the meantime, here's a quick tip: Always consider your body type and personal style when choosing outfits!",
+        isUser: false,
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, fallbackMessage]);
+
+      setMessages(prev => [...prev, errorMessage]);
       
-      toast.error("I'm having a moment, but I provided some general advice above. Please try again!");
+      toast({
+        title: "Connection Error",
+        description: "Unable to reach the AI stylist. Please check your connection and try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const retryLastMessage = () => {
-    const lastUserMessage = [...messages].reverse().find(msg => msg.isUser);
-    if (lastUserMessage) {
-      sendMessage(lastUserMessage.content, lastUserMessage.uploadedImages);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSend();
     }
   };
 
-  if (!isOpen) return null;
+  const handleRetry = () => {
+    if (messages.length > 1) {
+      const lastUserMessage = messages.filter(m => m.isUser).pop();
+      if (lastUserMessage) {
+        setInput(lastUserMessage.content);
+        setSelectedImages(lastUserMessage.uploadedImages || []);
+      }
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl h-[85vh] flex flex-col">
-        <ChatHeader 
-          onRetry={retryLastMessage}
-          onClose={() => onOpenChange(false)}
-          isLoading={isLoading}
-        />
-        
-        <CardContent className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
-          <MessageList messages={messages} isLoading={isLoading} />
-          <ChatInput 
-            input={input}
-            onInputChange={setInput}
-            onSend={() => sendMessage()}
-            onKeyPress={handleKeyPress}
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl h-[80vh] p-0 gap-0">
+        <Card className="h-full border-none shadow-none">
+          <ChatHeader 
+            onRetry={handleRetry}
+            onClose={() => onOpenChange(false)}
             isLoading={isLoading}
-            selectedImages={selectedImages}
-            onImagesSelected={setSelectedImages}
           />
-        </CardContent>
-      </Card>
-    </div>
+          <CardContent className="flex flex-col h-[calc(100%-5rem)] p-4">
+            <MessageList messages={messages} isLoading={isLoading} />
+            <ChatInput
+              input={input}
+              onInputChange={setInput}
+              onSend={handleSend}
+              onKeyPress={handleKeyPress}
+              isLoading={isLoading}
+              selectedImages={selectedImages}
+              onImagesSelected={setSelectedImages}
+            />
+          </CardContent>
+        </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 
