@@ -70,7 +70,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Calling Groq API with Llama model...');
+    console.log('Calling Groq API with updated model...');
     
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -79,7 +79,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.3-70b-versatile',
         messages: messages,
         temperature: 0.7,
         max_tokens: 2000,
